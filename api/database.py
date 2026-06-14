@@ -7,9 +7,11 @@ load_dotenv()
 
 _url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./reviewlens.db")
 
-# Render가 발급하는 postgres:// URL을 asyncpg 드라이버 형식으로 변환
+# Render가 발급하는 postgres:// / postgresql:// URL을 asyncpg 드라이버 형식으로 변환
 if _url.startswith("postgres://"):
     _url = _url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif _url.startswith("postgresql://"):
+    _url = _url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 DATABASE_URL = _url
 engine = create_async_engine(DATABASE_URL, echo=False)
