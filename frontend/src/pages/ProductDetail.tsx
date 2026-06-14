@@ -10,6 +10,7 @@ type Tab = "radar" | "bars" | "reviews";
 const SOURCE_LABELS: Record<Source, string> = {
   ably: "에이블리",
   musinsa: "무신사",
+  zigzag: "지그재그",
 };
 
 export default function ProductDetail() {

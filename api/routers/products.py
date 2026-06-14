@@ -14,6 +14,8 @@ def _get_crawler(source: str):
         from crawler.ably import crawl_product_reviews
     elif source == "musinsa":
         from crawler.musinsa import crawl_product_reviews
+    elif source == "zigzag":
+        from crawler.zigzag import crawl_product_reviews
     else:
         raise HTTPException(status_code=400, detail=f"지원하지 않는 쇼핑몰: {source}")
     return crawl_product_reviews

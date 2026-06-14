@@ -6,6 +6,7 @@ import type { Source } from "../api";
 const SOURCE_LABELS: Record<Source, string> = {
   ably: "에이블리",
   musinsa: "무신사",
+  zigzag: "지그재그",
 };
 
 export default function Home() {
@@ -34,10 +35,14 @@ export default function Home() {
     }
   };
 
-  const placeholder = source === "ably" ? "예) 45314288" : "예) 4992830";
-  const urlHint = source === "ably"
-    ? "a-bly.com/goods/45314288"
-    : "musinsa.com/products/4992830";
+  const placeholder =
+    source === "ably" ? "예) 45314288" :
+    source === "musinsa" ? "예) 4992830" :
+    "예) 114747784";
+  const urlHint =
+    source === "ably" ? "a-bly.com/goods/45314288" :
+    source === "musinsa" ? "musinsa.com/products/4992830" :
+    "zigzag.kr/catalog/products/114747784?tab=review";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white flex flex-col items-center justify-center px-4">
