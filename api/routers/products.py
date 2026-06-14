@@ -21,6 +21,35 @@ def _get_crawler(source: str):
     return crawl_product_reviews
 
 
+@router.get("/averages", response_model=dict[str, float])
+async def get_averages(db: AsyncSession = Depends(get_db)):
+    """분석된 모든 상품의 속성별 평균 점수를 반환합니다."""
+    result = await db.execute(
+        select(AnalysisResult).order_by(AnalysisResult.analyzed_at.desc())
+    )
+    all_results = result.scalars().all()
+
+    # 상품별 최신 분석 결과만 사용
+    seen = set()
+    latest = []
+    for r in all_results:
+        if r.product_id not in seen:
+            seen.add(r.product_id)
+            latest.append(r)
+
+    if not latest:
+        return {}
+
+    aspects = ["fit", "material", "finish", "size", "price"]
+    totals: dict[str, list[float]] = {a: [] for a in aspects}
+    for r in latest:
+        for a in aspects:
+            if a in r.scores:
+                totals[a].append(r.scores[a])
+
+    return {a: sum(v) / len(v) for a, v in totals.items() if v}
+
+
 @router.get("/", response_model=list[ProductOut])
 async def list_products(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Product).order_by(Product.created_at.desc()))

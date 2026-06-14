@@ -6,6 +6,7 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
   Tooltip,
+  Legend,
 } from "recharts";
 
 const LABELS: Record<string, string> = {
@@ -18,12 +19,16 @@ const LABELS: Record<string, string> = {
 
 interface Props {
   scores: Record<string, number>;
+  averages?: Record<string, number>;
 }
 
-export default function ScoreRadar({ scores }: Props) {
+export default function ScoreRadar({ scores, averages = {} }: Props) {
+  const hasAverages = Object.keys(averages).length > 0;
+
   const data = Object.entries(LABELS).map(([key, label]) => ({
     subject: label,
     score: key in scores ? Math.round(scores[key] * 100) : null,
+    average: key in averages ? Math.round(averages[key] * 100) : null,
     fullMark: 100,
   }));
 
@@ -34,16 +39,29 @@ export default function ScoreRadar({ scores }: Props) {
           <PolarGrid />
           <PolarAngleAxis dataKey="subject" />
           <PolarRadiusAxis domain={[0, 100]} tick={false} />
+          {hasAverages && (
+            <Radar
+              name="전체 평균"
+              dataKey="average"
+              stroke="#9ca3af"
+              fill="#9ca3af"
+              fillOpacity={0.15}
+              strokeDasharray="4 3"
+            />
+          )}
           <Radar
-            name="감성 점수"
+            name="이 상품"
             dataKey="score"
             stroke="#6366f1"
             fill="#6366f1"
             fillOpacity={0.4}
           />
           <Tooltip
-            formatter={(v) => v === null ? ["데이터 없음", ""] : [`${v}점`, "감성 점수"]}
+            formatter={(v, name) =>
+              v === null ? ["데이터 없음", name] : [`${v}점`, name]
+            }
           />
+          {hasAverages && <Legend />}
         </RadarChart>
       </ResponsiveContainer>
       {Object.entries(LABELS).some(([key]) => !(key in scores)) && (

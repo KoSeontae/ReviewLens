@@ -17,13 +17,33 @@ export default function Home() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const parseInput = (raw: string): { source: Source; code: string } | null => {
+    const s = raw.trim();
+    const patterns: [RegExp, Source][] = [
+      [/a-bly\.com\/goods\/(\d+)/, "ably"],
+      [/musinsa\.com\/products\/(\d+)/, "musinsa"],
+      [/zigzag\.kr\/catalog\/products\/(\d+)/, "zigzag"],
+    ];
+    for (const [re, src] of patterns) {
+      const m = s.match(re);
+      if (m) return { source: src, code: m[1] };
+    }
+    if (/^\d+$/.test(s)) return { source, code: s };
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productCode.trim()) return;
+    const parsed = parseInput(productCode);
+    if (!parsed) {
+      setError("올바른 상품 URL 또는 숫자 ID를 입력해주세요.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
-      const product = await api.crawl(source, productCode.trim(), maxReviews);
+      const product = await api.crawl(parsed.source, parsed.code, maxReviews);
       navigate(`/products/${product.source}/${product.product_code}`);
     } catch (err: unknown) {
       const msg =
@@ -35,10 +55,7 @@ export default function Home() {
     }
   };
 
-  const placeholder =
-    source === "ably" ? "예) 45314288" :
-    source === "musinsa" ? "예) 4992830" :
-    "예) 114747784";
+  const placeholder = "상품 URL 또는 숫자 ID 입력";
   const urlHint =
     source === "ably" ? "a-bly.com/goods/45314288" :
     source === "musinsa" ? "musinsa.com/products/4992830" :
@@ -76,7 +93,7 @@ export default function Home() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {SOURCE_LABELS[source]} 상품 ID
+              상품 URL 또는 ID
             </label>
             <input
               type="text"

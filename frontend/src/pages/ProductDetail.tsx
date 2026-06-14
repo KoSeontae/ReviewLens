@@ -18,6 +18,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [averages, setAverages] = useState<Record<string, number>>({});
   const [tab, setTab] = useState<Tab>("radar");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +28,7 @@ export default function ProductDetail() {
     api.getProduct(source, code).then(setProduct).catch(() => setError("상품 정보를 불러올 수 없습니다."));
     api.getAnalysis(source, code).then(setAnalysis).catch(() => {});
     api.getReviews(source, code).then(setReviews).catch(() => {});
+    api.getAverages().then(setAverages).catch(() => {});
   }, [source, code]);
 
   const runAnalysis = async () => {
@@ -121,8 +123,8 @@ export default function ProductDetail() {
               ))}
             </div>
 
-            {tab === "radar" && <ScoreRadar scores={analysis.scores} />}
-            {tab === "bars" && <ScoreBars scores={analysis.scores} />}
+            {tab === "radar" && <ScoreRadar scores={analysis.scores} averages={averages} />}
+            {tab === "bars" && <ScoreBars scores={analysis.scores} averages={averages} />}
             {tab === "reviews" && (
               <ul className="space-y-3 max-h-96 overflow-y-auto">
                 {reviews.map((r) => (

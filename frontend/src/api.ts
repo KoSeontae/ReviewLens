@@ -36,6 +36,7 @@ export interface AnalysisResult {
 }
 
 export const api = {
+  getAverages: () => client.get<Record<string, number>>("/products/averages").then((r) => r.data),
   listProducts: () => client.get<Product[]>("/products/").then((r) => r.data),
   getProduct: (source: Source, code: string) =>
     client.get<Product>(`/products/${source}/${code}`).then((r) => r.data),
