@@ -8,7 +8,7 @@
 ReviewLens/
 ├── crawler/          # 에이블리 리뷰 수집 (httpx)
 │   └── ably.py
-├── analysis/         # ABSA 모델 (PyABSA → KoELECTRA 폴백)
+├── analysis/         # ABSA 모델 (PyABSA → klue-bert-base-sentiment 폴백)
 │   ├── aspects.py    # 속성 정의 (핏, 소재, 마감, 사이즈, 가격)
 │   └── absa.py
 ├── api/              # FastAPI 백엔드
@@ -27,11 +27,12 @@ ReviewLens/
 
 ```bash
 # 의존성 설치
-python -m venv .venv && source .venv/bin/activate
+python -m venv venv && source venv/bin/activate
+pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 
 # 서버 실행
-uvicorn api.main:app --reload
+venv/bin/uvicorn api.main:app --reload
 # → http://localhost:8000
 # → API 문서: http://localhost:8000/docs
 ```
