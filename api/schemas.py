@@ -33,6 +33,7 @@ class AnalysisResultOut(BaseModel):
     product_id: int
     review_count: int
     scores: dict[str, float]
+    summaries: dict[str, str] | None = None
     analyzed_at: datetime
 
     model_config = {"from_attributes": True}

@@ -17,6 +17,7 @@ import httpx
 class Review:
     product_id: str
     product_name: str
+    image_url: Optional[str]
     reviewer: str
     rating: int
     body: str
@@ -78,6 +79,7 @@ async def crawl_product_reviews(
     async with httpx.AsyncClient() as client:
         page = 1
         product_name = product_id
+        image_url: Optional[str] = None
 
         while len(reviews) < max_reviews:
             items, total = await _fetch_review_page(client, product_id, page)
@@ -95,6 +97,9 @@ async def crawl_product_reviews(
                 goods = item.get("goods", {})
                 if page == 1 and not reviews:
                     product_name = goods.get("goodsName", product_id)
+                    img_path = goods.get("goodsImageFile", "")
+                    img_path_hq = img_path.replace("_100.", "_500.") if img_path else ""
+                    image_url = f"https://image.musinsa.com{img_path_hq}" if img_path_hq else None
 
                 profile = item.get("userProfileInfo") or {}
                 height = profile.get("userHeight")
@@ -103,6 +108,7 @@ async def crawl_product_reviews(
                 reviews.append(Review(
                     product_id=product_id,
                     product_name=product_name,
+                    image_url=image_url,
                     reviewer=profile.get("userNickName", "익명"),
                     rating=int(item.get("grade") or 0),
                     body=body,

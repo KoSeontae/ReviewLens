@@ -43,6 +43,7 @@ class AnalysisResult(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
     review_count: Mapped[int] = mapped_column(Integer)
     scores: Mapped[dict] = mapped_column(JSON)
+    summaries: Mapped[dict] = mapped_column(JSON, nullable=True)
     analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     product: Mapped["Product"] = relationship(back_populates="analysis")

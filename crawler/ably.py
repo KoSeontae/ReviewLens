@@ -22,6 +22,7 @@ load_dotenv()
 class Review:
     product_id: str
     product_name: str
+    image_url: Optional[str]
     reviewer: str
     rating: int
     body: str
@@ -56,7 +57,8 @@ async def _random_delay() -> None:
     await asyncio.sleep(random.uniform(1.0, 2.5))
 
 
-async def _fetch_product_name(client: httpx.AsyncClient, product_id: str) -> str:
+async def _fetch_product_info(client: httpx.AsyncClient, product_id: str) -> tuple[str, Optional[str]]:
+    """상품명과 대표 이미지 URL 반환."""
     try:
         resp = await client.get(
             f"https://api.a-bly.com/webview/goods/{product_id}/",
@@ -64,9 +66,13 @@ async def _fetch_product_name(client: httpx.AsyncClient, product_id: str) -> str
             timeout=10,
         )
         data = resp.json()
-        return data.get("goods", {}).get("name", product_id)
+        goods = data.get("goods", {})
+        name = goods.get("name", product_id)
+        images = goods.get("images", [])
+        image_url = images[0].get("url") if images else None
+        return name, image_url
     except Exception:
-        return product_id
+        return product_id, None
 
 
 async def _fetch_review_page(
@@ -104,7 +110,7 @@ async def crawl_product_reviews(
     reviews: list[Review] = []
 
     async with httpx.AsyncClient() as client:
-        product_name = await _fetch_product_name(client, product_id)
+        product_name, image_url = await _fetch_product_info(client, product_id)
 
         page = 1
         while len(reviews) < max_reviews:
@@ -126,6 +132,7 @@ async def crawl_product_reviews(
                 reviews.append(Review(
                     product_id=product_id,
                     product_name=item.get("goods_name", product_name),
+                    image_url=image_url,
                     reviewer=item.get("writer", "익명"),
                     rating=int(item.get("eval", 0)),
                     body=body,

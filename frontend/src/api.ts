@@ -32,8 +32,25 @@ export interface AnalysisResult {
   product_id: number;
   review_count: number;
   scores: Record<string, number>;
+  summaries: Record<string, string> | null;
   analyzed_at: string;
 }
+
+export const ALL_ASPECTS: { key: string; label: string }[] = [
+  { key: "fit", label: "핏" },
+  { key: "material", label: "소재" },
+  { key: "finish", label: "마감" },
+  { key: "size", label: "사이즈" },
+  { key: "price", label: "가격" },
+  { key: "color", label: "색상" },
+  { key: "design", label: "디자인" },
+  { key: "comfort", label: "착용감" },
+  { key: "delivery", label: "배송" },
+  { key: "care", label: "관리" },
+  { key: "sheerness", label: "비침" },
+  { key: "stretch", label: "신축성" },
+  { key: "season", label: "계절감" },
+];
 
 export const api = {
   getAverages: () => client.get<Record<string, number>>("/products/averages").then((r) => r.data),

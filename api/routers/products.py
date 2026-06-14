@@ -112,15 +112,20 @@ async def crawl_product(req: CrawlRequest, db: AsyncSession = Depends(get_db)):
     if not raw_reviews:
         raise HTTPException(status_code=422, detail="No reviews found for this product.")
 
+    image_url = raw_reviews[0].image_url if hasattr(raw_reviews[0], "image_url") else None
+
     if not product:
         product = Product(
             source=req.source,
             product_code=req.product_code,
             name=raw_reviews[0].product_name,
+            image_url=image_url,
         )
         db.add(product)
         await db.flush()
     else:
+        product.name = raw_reviews[0].product_name
+        product.image_url = image_url
         await db.execute(delete(Review).where(Review.product_id == product.id))
         await db.execute(delete(AnalysisResult).where(AnalysisResult.product_id == product.id))
 
@@ -155,12 +160,13 @@ async def analyze_product(req: AnalyzeRequest, db: AsyncSession = Depends(get_db
     if not review_texts:
         raise HTTPException(status_code=422, detail="No reviews to analyze.")
 
-    scores = analyze_reviews(review_texts)
+    scores, summaries = analyze_reviews(review_texts)
 
     analysis = AnalysisResult(
         product_id=product.id,
         review_count=len(review_texts),
         scores=scores,
+        summaries=summaries,
     )
     db.add(analysis)
     await db.commit()

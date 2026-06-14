@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { api } from "../api";
+import { api, ALL_ASPECTS } from "../api";
 import type { Product, AnalysisResult, Review, Source } from "../api";
 import ScoreRadar from "../components/ScoreRadar";
 import ScoreBars from "../components/ScoreBars";
@@ -13,12 +13,27 @@ const SOURCE_LABELS: Record<Source, string> = {
   zigzag: "지그재그",
 };
 
+const STORAGE_KEY = "reviewlens_visible_aspects";
+
+function loadVisibleAspects(): string[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return ["fit", "material", "finish", "size", "price"];
+}
+
+function saveVisibleAspects(keys: string[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
+}
+
 export default function ProductDetail() {
   const { source, code } = useParams<{ source: Source; code: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [averages, setAverages] = useState<Record<string, number>>({});
+  const [visibleAspects, setVisibleAspects] = useState<string[]>(loadVisibleAspects);
   const [tab, setTab] = useState<Tab>("radar");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
@@ -30,6 +45,14 @@ export default function ProductDetail() {
     api.getReviews(source, code).then(setReviews).catch(() => {});
     api.getAverages().then(setAverages).catch(() => {});
   }, [source, code]);
+
+  const toggleAspect = (key: string) => {
+    setVisibleAspects((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      saveVisibleAspects(next);
+      return next;
+    });
+  };
 
   const runAnalysis = async () => {
     if (!source || !code) return;
@@ -57,22 +80,57 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm px-6 py-4 flex items-center gap-4">
-        <Link to="/" className="text-indigo-600 hover:underline text-sm">
+      <header className="bg-white shadow-sm px-6 py-3 flex items-center gap-3">
+        <Link to="/" className="text-indigo-600 hover:underline text-sm flex-shrink-0">
           ← 홈
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium">
-              {SOURCE_LABELS[product.source as Source]}
-            </span>
-            <h2 className="text-lg font-bold text-gray-800 leading-tight">{product.name}</h2>
-          </div>
-          <p className="text-xs text-gray-400">ID: {product.product_code}</p>
-        </div>
+        <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+          {SOURCE_LABELS[product.source as Source]}
+        </span>
+        <p className="text-sm text-gray-500 truncate">{product.name}</p>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+        {/* 상품 카드 */}
+        <div className="bg-white rounded-2xl shadow overflow-hidden">
+          {product.image_url && (
+            <div className="w-full bg-gray-50 flex items-center justify-center" style={{ height: "260px" }}>
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="h-full w-full object-contain"
+              />
+            </div>
+          )}
+          <div className="px-5 py-4">
+            <h2 className="text-base font-bold text-gray-800 leading-snug">{product.name}</h2>
+            <p className="text-xs text-gray-400 mt-1">ID: {product.product_code}</p>
+          </div>
+        </div>
+        {/* 관심 속성 선택 */}
+        <div className="bg-white rounded-2xl shadow p-4 space-y-2">
+          <p className="text-sm font-semibold text-gray-700">관심 있는 항목 선택</p>
+          <p className="text-xs text-gray-400">선택한 항목만 그래프에 표시됩니다. 설정은 자동 저장됩니다.</p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {ALL_ASPECTS.map(({ key, label }) => {
+              const active = visibleAspects.includes(key);
+              return (
+                <button
+                  key={key}
+                  onClick={() => toggleAspect(key)}
+                  className={`text-xs px-3 py-1.5 rounded-full border font-medium transition ${
+                    active
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "text-gray-400 border-gray-300 hover:border-indigo-400"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {!analysis && (
           <div className="bg-white rounded-2xl shadow p-6 text-center space-y-3">
             <p className="text-gray-600">
@@ -123,8 +181,22 @@ export default function ProductDetail() {
               ))}
             </div>
 
-            {tab === "radar" && <ScoreRadar scores={analysis.scores} averages={averages} />}
-            {tab === "bars" && <ScoreBars scores={analysis.scores} averages={averages} />}
+            {tab === "radar" && (
+              <ScoreRadar
+                scores={analysis.scores}
+                averages={averages}
+                summaries={analysis.summaries}
+                visibleAspects={visibleAspects}
+              />
+            )}
+            {tab === "bars" && (
+              <ScoreBars
+                scores={analysis.scores}
+                averages={averages}
+                summaries={analysis.summaries}
+                visibleAspects={visibleAspects}
+              />
+            )}
             {tab === "reviews" && (
               <ul className="space-y-3 max-h-96 overflow-y-auto">
                 {reviews.map((r) => (

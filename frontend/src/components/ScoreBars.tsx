@@ -1,10 +1,5 @@
-const LABELS: Record<string, string> = {
-  fit: "핏",
-  material: "소재",
-  finish: "마감",
-  size: "사이즈",
-  price: "가격",
-};
+import { useState } from "react";
+import { ALL_ASPECTS } from "../api";
 
 const scoreColor = (score: number) => {
   if (score >= 0.75) return "bg-indigo-500";
@@ -15,10 +10,14 @@ const scoreColor = (score: number) => {
 interface Props {
   scores: Record<string, number>;
   averages?: Record<string, number>;
+  summaries?: Record<string, string> | null;
+  visibleAspects: string[];
 }
 
-export default function ScoreBars({ scores, averages = {} }: Props) {
+export default function ScoreBars({ scores, averages = {}, summaries, visibleAspects }: Props) {
+  const [hovered, setHovered] = useState<string | null>(null);
   const hasAverages = Object.keys(averages).length > 0;
+  const aspects = ALL_ASPECTS.filter((a) => visibleAspects.includes(a.key));
 
   return (
     <div className="space-y-4">
@@ -32,9 +31,10 @@ export default function ScoreBars({ scores, averages = {} }: Props) {
           </span>
         </div>
       )}
-      {Object.entries(LABELS).map(([key, label]) => {
+      {aspects.map(({ key, label }) => {
         const score = scores[key];
         const avg = averages[key];
+        const summary = summaries?.[key];
 
         if (score === undefined) {
           return (
@@ -52,15 +52,18 @@ export default function ScoreBars({ scores, averages = {} }: Props) {
         const avgPct = avg !== undefined ? Math.round(avg * 100) : null;
 
         return (
-          <div key={key}>
+          <div
+            key={key}
+            className="relative"
+            onMouseEnter={() => setHovered(key)}
+            onMouseLeave={() => setHovered(null)}
+          >
             <div className="flex justify-between text-sm mb-1">
               <span className="font-medium text-gray-700">{label}</span>
               <span className="text-gray-500">
                 {pct}%
                 {avgPct !== null && (
-                  <span className="text-gray-400 ml-1 text-xs">
-                    (평균 {avgPct}%)
-                  </span>
+                  <span className="text-gray-400 ml-1 text-xs">(평균 {avgPct}%)</span>
                 )}
               </span>
             </div>
@@ -76,6 +79,12 @@ export default function ScoreBars({ scores, averages = {} }: Props) {
                 />
               )}
             </div>
+            {hovered === key && summary && (
+              <div className="mt-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 leading-relaxed">
+                <span className="font-semibold text-gray-600">리뷰 요약 · </span>
+                {summary}
+              </div>
+            )}
           </div>
         );
       })}

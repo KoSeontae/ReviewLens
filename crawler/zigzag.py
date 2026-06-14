@@ -62,6 +62,7 @@ _HEADERS = {
 class Review:
     product_id: str
     product_name: str
+    image_url: Optional[str]
     reviewer: str
     rating: int
     body: str
@@ -130,6 +131,7 @@ async def crawl_product_reviews(
     reviews: list[Review] = []
     cursor: Optional[str] = None
     product_name = product_id
+    image_url: Optional[str] = None
 
     async with httpx.AsyncClient() as client:
         while len(reviews) < max_reviews:
@@ -149,7 +151,9 @@ async def crawl_product_reviews(
                     continue
 
                 if not reviews:
-                    product_name = (review.get("product_info") or {}).get("name", product_id)
+                    info = review.get("product_info") or {}
+                    product_name = info.get("name", product_id)
+                    image_url = info.get("image_url")
 
                 nickname = (
                     (review.get("reviewer") or {})
@@ -165,6 +169,7 @@ async def crawl_product_reviews(
                 reviews.append(Review(
                     product_id=product_id,
                     product_name=product_name,
+                    image_url=image_url,
                     reviewer=nickname,
                     rating=int(review.get("rating") or 0),
                     body=body,
