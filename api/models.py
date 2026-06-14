@@ -1,14 +1,16 @@
 from datetime import datetime
-from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, Text, JSON
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from api.database import Base
 
 
 class Product(Base):
     __tablename__ = "products"
+    __table_args__ = (UniqueConstraint("source", "product_code", name="uq_source_product_code"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    product_code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    source: Mapped[str] = mapped_column(String(32), index=True)        # "ably" | "musinsa"
+    product_code: Mapped[str] = mapped_column(String(64), index=True)
     name: Mapped[str] = mapped_column(String(256))
     brand: Mapped[str] = mapped_column(String(128), nullable=True)
     image_url: Mapped[str] = mapped_column(String(512), nullable=True)
@@ -26,7 +28,7 @@ class Review(Base):
     reviewer: Mapped[str] = mapped_column(String(128), nullable=True)
     rating: Mapped[int] = mapped_column(Integer, nullable=True)
     body: Mapped[str] = mapped_column(Text)
-    size_bought: Mapped[str] = mapped_column(String(32), nullable=True)
+    size_bought: Mapped[str] = mapped_column(String(64), nullable=True)
     height: Mapped[str] = mapped_column(String(16), nullable=True)
     weight: Mapped[str] = mapped_column(String(16), nullable=True)
     crawled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -40,7 +42,7 @@ class AnalysisResult(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
     review_count: Mapped[int] = mapped_column(Integer)
-    scores: Mapped[dict] = mapped_column(JSON)   # {"fit": 0.82, "material": 0.74, ...}
+    scores: Mapped[dict] = mapped_column(JSON)
     analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     product: Mapped["Product"] = relationship(back_populates="analysis")

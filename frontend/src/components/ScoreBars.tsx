@@ -21,7 +21,17 @@ export default function ScoreBars({ scores }: Props) {
     <div className="space-y-3">
       {Object.entries(LABELS).map(([key, label]) => {
         const score = scores[key];
-        if (score === undefined) return null;
+        if (score === undefined) {
+          return (
+            <div key={key}>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="font-medium text-gray-400">{label}</span>
+                <span className="text-gray-300 text-xs">언급 없음</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2.5" />
+            </div>
+          );
+        }
         const pct = Math.round(score * 100);
         return (
           <div key={key}>

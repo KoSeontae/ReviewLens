@@ -4,10 +4,19 @@ from sqlalchemy import select, delete
 from api.database import get_db
 from api.models import Product, Review, AnalysisResult
 from api.schemas import ProductOut, ReviewOut, AnalysisResultOut, CrawlRequest, AnalyzeRequest
-from crawler.ably import crawl_product_reviews
 from analysis.absa import analyze_reviews
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+
+def _get_crawler(source: str):
+    if source == "ably":
+        from crawler.ably import crawl_product_reviews
+    elif source == "musinsa":
+        from crawler.musinsa import crawl_product_reviews
+    else:
+        raise HTTPException(status_code=400, detail=f"지원하지 않는 쇼핑몰: {source}")
+    return crawl_product_reviews
 
 
 @router.get("/", response_model=list[ProductOut])
@@ -16,18 +25,22 @@ async def list_products(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.get("/{product_code}", response_model=ProductOut)
-async def get_product(product_code: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Product).where(Product.product_code == product_code))
+@router.get("/{source}/{product_code}", response_model=ProductOut)
+async def get_product(source: str, product_code: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Product).where(Product.source == source, Product.product_code == product_code)
+    )
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
 
-@router.get("/{product_code}/reviews", response_model=list[ReviewOut])
-async def get_reviews(product_code: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Product).where(Product.product_code == product_code))
+@router.get("/{source}/{product_code}/reviews", response_model=list[ReviewOut])
+async def get_reviews(source: str, product_code: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Product).where(Product.source == source, Product.product_code == product_code)
+    )
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -35,9 +48,11 @@ async def get_reviews(product_code: str, db: AsyncSession = Depends(get_db)):
     return reviews.scalars().all()
 
 
-@router.get("/{product_code}/analysis", response_model=AnalysisResultOut)
-async def get_analysis(product_code: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Product).where(Product.product_code == product_code))
+@router.get("/{source}/{product_code}/analysis", response_model=AnalysisResultOut)
+async def get_analysis(source: str, product_code: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Product).where(Product.source == source, Product.product_code == product_code)
+    )
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -54,24 +69,27 @@ async def get_analysis(product_code: str, db: AsyncSession = Depends(get_db)):
 
 @router.post("/crawl", response_model=ProductOut, status_code=201)
 async def crawl_product(req: CrawlRequest, db: AsyncSession = Depends(get_db)):
-    """에이블리 상품 리뷰를 크롤링해 DB에 저장합니다."""
-    # 이미 존재하면 재수집 스킵
-    existing = await db.execute(select(Product).where(Product.product_code == req.product_code))
+    """에이블리 또는 무신사 상품 리뷰를 크롤링해 DB에 저장합니다."""
+    crawl = _get_crawler(req.source)
+
+    existing = await db.execute(
+        select(Product).where(Product.source == req.source, Product.product_code == req.product_code)
+    )
     product = existing.scalar_one_or_none()
 
-    raw_reviews = await crawl_product_reviews(req.product_code, req.max_reviews)
+    raw_reviews = await crawl(req.product_code, req.max_reviews)
     if not raw_reviews:
         raise HTTPException(status_code=422, detail="No reviews found for this product.")
 
     if not product:
         product = Product(
+            source=req.source,
             product_code=req.product_code,
             name=raw_reviews[0].product_name,
         )
         db.add(product)
         await db.flush()
     else:
-        # 재수집 시 기존 리뷰 및 분석 결과 초기화
         await db.execute(delete(Review).where(Review.product_id == product.id))
         await db.execute(delete(AnalysisResult).where(AnalysisResult.product_id == product.id))
 
@@ -94,7 +112,9 @@ async def crawl_product(req: CrawlRequest, db: AsyncSession = Depends(get_db)):
 @router.post("/analyze", response_model=AnalysisResultOut, status_code=201)
 async def analyze_product(req: AnalyzeRequest, db: AsyncSession = Depends(get_db)):
     """저장된 리뷰에 ABSA를 실행하고 결과를 반환합니다."""
-    result = await db.execute(select(Product).where(Product.product_code == req.product_code))
+    result = await db.execute(
+        select(Product).where(Product.source == req.source, Product.product_code == req.product_code)
+    )
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found. Crawl first.")

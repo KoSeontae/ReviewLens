@@ -1,9 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
+import type { Source } from "../api";
+
+const SOURCE_LABELS: Record<Source, string> = {
+  ably: "에이블리",
+  musinsa: "무신사",
+};
 
 export default function Home() {
-  const [productId, setProductId] = useState("");
+  const [source, setSource] = useState<Source>("ably");
+  const [productCode, setProductCode] = useState("");
   const [maxReviews, setMaxReviews] = useState(50);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -11,12 +18,12 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productId.trim()) return;
+    if (!productCode.trim()) return;
     setError("");
     setLoading(true);
     try {
-      const product = await api.crawl(productId.trim(), maxReviews);
-      navigate(`/products/${product.product_code}`);
+      const product = await api.crawl(source, productCode.trim(), maxReviews);
+      navigate(`/products/${product.source}/${product.product_code}`);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
@@ -27,24 +34,50 @@ export default function Home() {
     }
   };
 
+  const placeholder = source === "ably" ? "예) 45314288" : "예) 4992830";
+  const urlHint = source === "ably"
+    ? "a-bly.com/goods/45314288"
+    : "musinsa.com/products/4992830";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white flex flex-col items-center justify-center px-4">
       <div className="max-w-lg w-full">
         <h1 className="text-4xl font-bold text-indigo-700 mb-2 text-center">ReviewLens</h1>
         <p className="text-gray-500 text-center mb-8">
-          에이블리 상품 번호를 입력하면 리뷰를 분석해드립니다
+          쇼핑몰 상품 번호를 입력하면 리뷰를 분석해드립니다
         </p>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+          {/* 쇼핑몰 선택 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">쇼핑몰</label>
+            <div className="flex gap-2">
+              {(Object.keys(SOURCE_LABELS) as Source[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSource(s)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition ${
+                    source === s
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "text-gray-500 border-gray-300 hover:border-indigo-400"
+                  }`}
+                >
+                  {SOURCE_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              에이블리 상품 ID
+              {SOURCE_LABELS[source]} 상품 ID
             </label>
             <input
               type="text"
-              value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              placeholder="예) 12345678"
+              value={productCode}
+              onChange={(e) => setProductCode(e.target.value)}
+              placeholder={placeholder}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
           </div>
@@ -75,7 +108,7 @@ export default function Home() {
         </form>
 
         <p className="text-xs text-gray-400 text-center mt-4">
-          상품 URL에서 숫자 ID를 확인하세요 · 예) a-bly.com/goods/<strong>12345678</strong>
+          상품 URL에서 숫자 ID를 확인하세요 · 예) <strong>{urlHint}</strong>
         </p>
       </div>
     </div>

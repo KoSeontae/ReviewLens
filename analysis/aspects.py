@@ -24,7 +24,7 @@ FASHION_ASPECTS: list[Aspect] = [
     Aspect(
         key="finish",
         label="마감",
-        keywords=["마감", "박음질", "스티칭", "퀄리티", "품질", "완성도", "내구성", "뜯김", "튼튼"],
+        keywords=["마감", "박음질", "스티칭", "퀄리티", "품질", "완성도", "내구성", "뜯김", "튼튼", "조잡", "허술", "깔끔", "정교"],
     ),
     Aspect(
         key="size",

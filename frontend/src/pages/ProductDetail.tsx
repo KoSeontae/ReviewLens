@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api";
-import type { Product, AnalysisResult, Review } from "../api";
+import type { Product, AnalysisResult, Review, Source } from "../api";
 import ScoreRadar from "../components/ScoreRadar";
 import ScoreBars from "../components/ScoreBars";
 
 type Tab = "radar" | "bars" | "reviews";
 
+const SOURCE_LABELS: Record<Source, string> = {
+  ably: "에이블리",
+  musinsa: "무신사",
+};
+
 export default function ProductDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { source, code } = useParams<{ source: Source; code: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -17,19 +22,19 @@ export default function ProductDetail() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!id) return;
-    api.getProduct(id).then(setProduct).catch(() => setError("상품 정보를 불러올 수 없습니다."));
-    api.getAnalysis(id).then(setAnalysis).catch(() => {});
-    api.getReviews(id).then(setReviews).catch(() => {});
-  }, [id]);
+    if (!source || !code) return;
+    api.getProduct(source, code).then(setProduct).catch(() => setError("상품 정보를 불러올 수 없습니다."));
+    api.getAnalysis(source, code).then(setAnalysis).catch(() => {});
+    api.getReviews(source, code).then(setReviews).catch(() => {});
+  }, [source, code]);
 
   const runAnalysis = async () => {
-    if (!id) return;
+    if (!source || !code) return;
     setAnalyzing(true);
     setError("");
     try {
-      const result = await api.analyze(id);
-      const updatedReviews = await api.getReviews(id);
+      const result = await api.analyze(source, code);
+      const updatedReviews = await api.getReviews(source, code);
       setAnalysis(result);
       setReviews(updatedReviews);
     } catch {
@@ -49,19 +54,22 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
       <header className="bg-white shadow-sm px-6 py-4 flex items-center gap-4">
         <Link to="/" className="text-indigo-600 hover:underline text-sm">
           ← 홈
         </Link>
         <div className="flex-1">
-          <h2 className="text-lg font-bold text-gray-800 leading-tight">{product.name}</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium">
+              {SOURCE_LABELS[product.source as Source]}
+            </span>
+            <h2 className="text-lg font-bold text-gray-800 leading-tight">{product.name}</h2>
+          </div>
           <p className="text-xs text-gray-400">ID: {product.product_code}</p>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        {/* 분석 없을 때 CTA */}
         {!analysis && (
           <div className="bg-white rounded-2xl shadow p-6 text-center space-y-3">
             <p className="text-gray-600">
@@ -78,7 +86,6 @@ export default function ProductDetail() {
           </div>
         )}
 
-        {/* 분석 결과 */}
         {analysis && (
           <div className="bg-white rounded-2xl shadow p-6 space-y-4">
             <div className="flex justify-between items-center">
@@ -97,7 +104,6 @@ export default function ProductDetail() {
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 
-            {/* 탭 */}
             <div className="flex gap-2 border-b pb-2">
               {(["radar", "bars", "reviews"] as Tab[]).map((t) => (
                 <button
@@ -126,7 +132,7 @@ export default function ProductDetail() {
                     </div>
                     <p className="text-gray-700 leading-relaxed">{r.body}</p>
                     {r.size_bought && (
-                      <p className="text-xs text-gray-400 mt-1">구매 사이즈: {r.size_bought}</p>
+                      <p className="text-xs text-gray-400 mt-1">구매 옵션: {r.size_bought}</p>
                     )}
                   </li>
                 ))}

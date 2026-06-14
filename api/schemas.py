@@ -1,9 +1,11 @@
 from datetime import datetime
+from typing import Literal
 from pydantic import BaseModel
 
 
 class ProductOut(BaseModel):
     id: int
+    source: str
     product_code: str
     name: str
     brand: str | None
@@ -37,9 +39,11 @@ class AnalysisResultOut(BaseModel):
 
 
 class CrawlRequest(BaseModel):
+    source: Literal["ably", "musinsa"]
     product_code: str
     max_reviews: int = 100
 
 
 class AnalyzeRequest(BaseModel):
+    source: Literal["ably", "musinsa"]
     product_code: str
