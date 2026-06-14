@@ -8,7 +8,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    musinsa_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    product_code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(256))
     brand: Mapped[str] = mapped_column(String(128), nullable=True)
     image_url: Mapped[str] = mapped_column(String(512), nullable=True)

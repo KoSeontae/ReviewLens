@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 class ProductOut(BaseModel):
     id: int
-    musinsa_id: str
+    product_code: str
     name: str
     brand: str | None
     image_url: str | None
@@ -37,9 +37,9 @@ class AnalysisResultOut(BaseModel):
 
 
 class CrawlRequest(BaseModel):
-    musinsa_id: str
+    product_code: str
     max_reviews: int = 100
 
 
 class AnalyzeRequest(BaseModel):
-    musinsa_id: str
+    product_code: str

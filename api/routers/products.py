@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from api.database import get_db
 from api.models import Product, Review, AnalysisResult
 from api.schemas import ProductOut, ReviewOut, AnalysisResultOut, CrawlRequest, AnalyzeRequest
@@ -16,18 +16,18 @@ async def list_products(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.get("/{musinsa_id}", response_model=ProductOut)
-async def get_product(musinsa_id: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Product).where(Product.musinsa_id == musinsa_id))
+@router.get("/{product_code}", response_model=ProductOut)
+async def get_product(product_code: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Product).where(Product.product_code == product_code))
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
 
-@router.get("/{musinsa_id}/reviews", response_model=list[ReviewOut])
-async def get_reviews(musinsa_id: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Product).where(Product.musinsa_id == musinsa_id))
+@router.get("/{product_code}/reviews", response_model=list[ReviewOut])
+async def get_reviews(product_code: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Product).where(Product.product_code == product_code))
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -35,9 +35,9 @@ async def get_reviews(musinsa_id: str, db: AsyncSession = Depends(get_db)):
     return reviews.scalars().all()
 
 
-@router.get("/{musinsa_id}/analysis", response_model=AnalysisResultOut)
-async def get_analysis(musinsa_id: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Product).where(Product.musinsa_id == musinsa_id))
+@router.get("/{product_code}/analysis", response_model=AnalysisResultOut)
+async def get_analysis(product_code: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Product).where(Product.product_code == product_code))
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -54,22 +54,26 @@ async def get_analysis(musinsa_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.post("/crawl", response_model=ProductOut, status_code=201)
 async def crawl_product(req: CrawlRequest, db: AsyncSession = Depends(get_db)):
-    """무신사 상품 리뷰를 크롤링해 DB에 저장합니다."""
+    """에이블리 상품 리뷰를 크롤링해 DB에 저장합니다."""
     # 이미 존재하면 재수집 스킵
-    existing = await db.execute(select(Product).where(Product.musinsa_id == req.musinsa_id))
+    existing = await db.execute(select(Product).where(Product.product_code == req.product_code))
     product = existing.scalar_one_or_none()
 
-    raw_reviews = await crawl_product_reviews(req.musinsa_id, req.max_reviews)
+    raw_reviews = await crawl_product_reviews(req.product_code, req.max_reviews)
     if not raw_reviews:
         raise HTTPException(status_code=422, detail="No reviews found for this product.")
 
     if not product:
         product = Product(
-            musinsa_id=req.musinsa_id,
+            product_code=req.product_code,
             name=raw_reviews[0].product_name,
         )
         db.add(product)
         await db.flush()
+    else:
+        # 재수집 시 기존 리뷰 및 분석 결과 초기화
+        await db.execute(delete(Review).where(Review.product_id == product.id))
+        await db.execute(delete(AnalysisResult).where(AnalysisResult.product_id == product.id))
 
     for r in raw_reviews:
         db.add(Review(
@@ -90,7 +94,7 @@ async def crawl_product(req: CrawlRequest, db: AsyncSession = Depends(get_db)):
 @router.post("/analyze", response_model=AnalysisResultOut, status_code=201)
 async def analyze_product(req: AnalyzeRequest, db: AsyncSession = Depends(get_db)):
     """저장된 리뷰에 ABSA를 실행하고 결과를 반환합니다."""
-    result = await db.execute(select(Product).where(Product.musinsa_id == req.musinsa_id))
+    result = await db.execute(select(Product).where(Product.product_code == req.product_code))
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found. Crawl first.")

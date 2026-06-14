@@ -16,7 +16,7 @@ export default function Home() {
     setLoading(true);
     try {
       const product = await api.crawl(productId.trim(), maxReviews);
-      navigate(`/products/${product.musinsa_id}`);
+      navigate(`/products/${product.product_code}`);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??

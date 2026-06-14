@@ -29,7 +29,9 @@ export default function ProductDetail() {
     setError("");
     try {
       const result = await api.analyze(id);
+      const updatedReviews = await api.getReviews(id);
       setAnalysis(result);
+      setReviews(updatedReviews);
     } catch {
       setError("분석 중 오류가 발생했습니다.");
     } finally {
@@ -52,9 +54,9 @@ export default function ProductDetail() {
         <Link to="/" className="text-indigo-600 hover:underline text-sm">
           ← 홈
         </Link>
-        <div>
+        <div className="flex-1">
           <h2 className="text-lg font-bold text-gray-800 leading-tight">{product.name}</h2>
-          <p className="text-xs text-gray-400">ID: {product.musinsa_id}</p>
+          <p className="text-xs text-gray-400">ID: {product.product_code}</p>
         </div>
       </header>
 
@@ -81,8 +83,19 @@ export default function ProductDetail() {
           <div className="bg-white rounded-2xl shadow p-6 space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-bold text-gray-800">속성별 감성 점수</h3>
-              <span className="text-xs text-gray-400">리뷰 {analysis.review_count}개 기반</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-400">리뷰 {analysis.review_count}개 기반</span>
+                <button
+                  onClick={runAnalysis}
+                  disabled={analyzing}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-50 border border-indigo-300 rounded px-2 py-1 transition"
+                >
+                  {analyzing ? "분석 중..." : "재분석"}
+                </button>
+              </div>
             </div>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             {/* 탭 */}
             <div className="flex gap-2 border-b pb-2">

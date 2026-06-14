@@ -6,7 +6,7 @@ const client = axios.create({
 
 export interface Product {
   id: number;
-  musinsa_id: string;
+  product_code: string;
   name: string;
   brand: string | null;
   image_url: string | null;
@@ -34,11 +34,11 @@ export interface AnalysisResult {
 
 export const api = {
   listProducts: () => client.get<Product[]>("/products/").then((r) => r.data),
-  getProduct: (id: string) => client.get<Product>(`/products/${id}`).then((r) => r.data),
-  getReviews: (id: string) => client.get<Review[]>(`/products/${id}/reviews`).then((r) => r.data),
-  getAnalysis: (id: string) => client.get<AnalysisResult>(`/products/${id}/analysis`).then((r) => r.data),
-  crawl: (ably_id: string, max_reviews = 100) =>
-    client.post<Product>("/products/crawl", { musinsa_id: ably_id, max_reviews }).then((r) => r.data),
-  analyze: (ably_id: string) =>
-    client.post<AnalysisResult>("/products/analyze", { musinsa_id: ably_id }).then((r) => r.data),
+  getProduct: (code: string) => client.get<Product>(`/products/${code}`).then((r) => r.data),
+  getReviews: (code: string) => client.get<Review[]>(`/products/${code}/reviews`).then((r) => r.data),
+  getAnalysis: (code: string) => client.get<AnalysisResult>(`/products/${code}/analysis`).then((r) => r.data),
+  crawl: (product_code: string, max_reviews = 100) =>
+    client.post<Product>("/products/crawl", { product_code, max_reviews }).then((r) => r.data),
+  analyze: (product_code: string) =>
+    client.post<AnalysisResult>("/products/analyze", { product_code }).then((r) => r.data),
 };

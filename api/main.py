@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="ReviewLens API",
-    description="무신사 리뷰 기반 속성 감성 분석 서비스",
+    description="패션 쇼핑몰 리뷰 기반 속성 감성 분석 서비스",
     version="0.1.0",
     lifespan=lifespan,
 )
