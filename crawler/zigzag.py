@@ -124,6 +124,24 @@ async def _fetch_page(
         return [], False, None
 
 
+async def _fetch_product_image(client: httpx.AsyncClient, product_id: str) -> Optional[str]:
+    """상품 페이지 og:image 태그에서 썸네일 URL을 가져옵니다."""
+    try:
+        from bs4 import BeautifulSoup
+        headers = {**_HEADERS, "Accept": "text/html"}
+        resp = await client.get(
+            f"https://zigzag.kr/catalog/products/{product_id}",
+            headers=headers,
+            timeout=15,
+            follow_redirects=True,
+        )
+        soup = BeautifulSoup(resp.text, "html.parser")
+        og = soup.find("meta", property="og:image")
+        return og.get("content") if og else None
+    except Exception:
+        return None
+
+
 async def crawl_product_reviews(
     product_id: str,
     max_reviews: int = 100,
@@ -134,6 +152,8 @@ async def crawl_product_reviews(
     image_url: Optional[str] = None
 
     async with httpx.AsyncClient() as client:
+        image_url = await _fetch_product_image(client, product_id)
+
         while len(reviews) < max_reviews:
             items, has_next, cursor = await _fetch_page(client, product_id, cursor)
             if not items:
@@ -153,7 +173,6 @@ async def crawl_product_reviews(
                 if not reviews:
                     info = review.get("product_info") or {}
                     product_name = info.get("name", product_id)
-                    image_url = info.get("image_url")
 
                 nickname = (
                     (review.get("reviewer") or {})

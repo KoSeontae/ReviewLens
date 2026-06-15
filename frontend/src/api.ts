@@ -4,7 +4,7 @@ const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
 });
 
-export type Source = "ably" | "musinsa" | "zigzag";
+export type Source = "ably" | "musinsa" | "zigzag" | "hiver";
 
 export interface Product {
   id: number;

@@ -11,6 +11,7 @@ const SOURCE_LABELS: Record<Source, string> = {
   ably: "에이블리",
   musinsa: "무신사",
   zigzag: "지그재그",
+  hiver: "하이버",
 };
 
 const STORAGE_KEY = "reviewlens_visible_aspects";

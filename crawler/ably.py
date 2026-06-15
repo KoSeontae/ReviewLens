@@ -61,15 +61,14 @@ async def _fetch_product_info(client: httpx.AsyncClient, product_id: str) -> tup
     """상품명과 대표 이미지 URL 반환."""
     try:
         resp = await client.get(
-            f"https://api.a-bly.com/webview/goods/{product_id}/",
+            f"https://api.a-bly.com/api/v2/goods/{product_id}/",
             headers=_make_headers(),
             timeout=10,
         )
         data = resp.json()
         goods = data.get("goods", {})
         name = goods.get("name", product_id)
-        images = goods.get("images", [])
-        image_url = images[0].get("url") if images else None
+        image_url = goods.get("image") or (goods.get("cover_images") or [None])[0]
         return name, image_url
     except Exception:
         return product_id, None

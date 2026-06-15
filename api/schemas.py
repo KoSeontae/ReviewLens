@@ -40,11 +40,11 @@ class AnalysisResultOut(BaseModel):
 
 
 class CrawlRequest(BaseModel):
-    source: Literal["ably", "musinsa", "zigzag"]
+    source: Literal["ably", "musinsa", "zigzag", "hiver"]
     product_code: str
     max_reviews: int = 100
 
 
 class AnalyzeRequest(BaseModel):
-    source: Literal["ably", "musinsa", "zigzag"]
+    source: Literal["ably", "musinsa", "zigzag", "hiver"]
     product_code: str

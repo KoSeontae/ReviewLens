@@ -2,11 +2,7 @@
 beautifulsoup4==4.12.3
 
 # Analysis
-torch==2.5.1
-transformers==4.40.2
 pyabsa==2.4.2
-# ABSA 폴백 모델 (한국어 감정 분류)
-# hun3359/klue-bert-base-sentiment — Hugging Face에서 자동 다운로드
 pandas==2.2.2
 numpy==1.26.4
 

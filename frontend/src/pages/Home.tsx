@@ -7,6 +7,7 @@ const SOURCE_LABELS: Record<Source, string> = {
   ably: "에이블리",
   musinsa: "무신사",
   zigzag: "지그재그",
+  hiver: "하이버",
 };
 
 export default function Home() {
@@ -23,6 +24,7 @@ export default function Home() {
       [/a-bly\.com\/goods\/(\d+)/, "ably"],
       [/musinsa\.com\/products\/(\d+)/, "musinsa"],
       [/zigzag\.kr\/catalog\/products\/(\d+)/, "zigzag"],
+      [/hiver\.co\.kr\/products\/(\d+)/, "hiver"],
     ];
     for (const [re, src] of patterns) {
       const m = s.match(re);
@@ -48,7 +50,7 @@ export default function Home() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "크롤링 중 오류가 발생했습니다.";
+        "리뷰를 불러오는 데 실패했습니다.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -59,7 +61,8 @@ export default function Home() {
   const urlHint =
     source === "ably" ? "a-bly.com/goods/45314288" :
     source === "musinsa" ? "musinsa.com/products/4992830" :
-    "zigzag.kr/catalog/products/114747784?tab=review";
+    source === "zigzag" ? "zigzag.kr/catalog/products/114747784" :
+    "hiver.co.kr/products/175466788";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white flex flex-col items-center justify-center px-4">
