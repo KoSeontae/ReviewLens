@@ -28,6 +28,13 @@ function saveVisibleAspects(keys: string[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
 }
 
+function scoreGrade(score: number): { color: string; bg: string } {
+  if (score >= 0.8) return { color: "#059669", bg: "#ecfdf5" };
+  if (score >= 0.65) return { color: "#7c3aed", bg: "#f5f3ff" };
+  if (score >= 0.5) return { color: "#d97706", bg: "#fffbeb" };
+  return { color: "#dc2626", bg: "#fef2f2" };
+}
+
 export default function ProductDetail() {
   const { source, code } = useParams<{ source: Source; code: string }>();
   const [product, setProduct] = useState<Product | null>(null);
@@ -73,58 +80,154 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400">
-        {error || "로딩 중..."}
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(160deg, #f0edff 0%, #faf9ff 50%, #ede9fe 100%)" }}
+      >
+        {error ? (
+          <p style={{ color: "#dc2626" }}>{error}</p>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+            <svg className="animate-spin w-6 h-6" viewBox="0 0 24 24" fill="none" style={{ color: "#7c3aed" }}>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            <span className="text-sm" style={{ color: "#7c6fa0" }}>불러오는 중…</span>
+          </div>
+        )}
       </div>
     );
   }
 
+  const topScores = analysis
+    ? Object.entries(analysis.scores)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([key, score]) => ({
+          key,
+          label: ALL_ASPECTS.find((a) => a.key === key)?.label ?? key,
+          score,
+          ...scoreGrade(score),
+        }))
+    : [];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm px-6 py-3 flex items-center gap-3">
-        <Link to="/" className="text-indigo-600 hover:underline text-sm flex-shrink-0">
-          ← 홈
+    <div className="min-h-screen" style={{ background: "linear-gradient(160deg, #f0edff 0%, #faf9ff 60%, #ede9fe 100%)" }}>
+      {/* 헤더 */}
+      <header
+        className="sticky top-0 z-50 px-5 py-3 flex items-center gap-3"
+        style={{
+          background: "rgba(245,244,255,0.85)",
+          backdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(139,92,246,0.1)",
+          boxShadow: "0 1px 12px rgba(109,40,217,0.06)",
+        }}
+      >
+        <Link
+          to="/app"
+          className="flex items-center gap-1.5 text-sm font-medium transition-colors duration-150"
+          style={{ color: "#7c3aed" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 5l-7 7 7 7" />
+          </svg>
+          홈
         </Link>
-        <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+        <span
+          className="text-xs font-semibold px-2.5 py-1 rounded-full"
+          style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed", border: "1px solid rgba(124,58,237,0.2)" }}
+        >
           {SOURCE_LABELS[product.source as Source]}
         </span>
-        <p className="text-sm text-gray-500 truncate">{product.name}</p>
+        <span className="text-sm truncate flex-1" style={{ color: "#4a4560" }}>
+          {product.name}
+        </span>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {/* 상품 카드 */}
-        <div className="bg-white rounded-2xl shadow overflow-hidden">
+        <div
+          className="rounded-2xl overflow-hidden flex gap-0"
+          style={{
+            background: "rgba(255,255,255,0.8)",
+            border: "1px solid rgba(139,92,246,0.1)",
+            boxShadow: "0 2px 16px rgba(109,40,217,0.06)",
+          }}
+        >
           {product.image_url && (
-            <div className="w-full bg-gray-50 flex items-center justify-center" style={{ height: "260px" }}>
+            <div
+              className="flex-shrink-0"
+              style={{ width: 120, height: 120, background: "#f5f3ff" }}
+            >
               <img
                 src={product.image_url}
                 alt={product.name}
-                className="h-full w-full object-contain"
+                className="w-full h-full object-cover"
               />
             </div>
           )}
-          <div className="px-5 py-4">
-            <h2 className="text-base font-bold text-gray-800 leading-snug">{product.name}</h2>
-            <p className="text-xs text-gray-400 mt-1">ID: {product.product_code}</p>
+          <div className="px-5 py-4 flex flex-col justify-center">
+            {product.brand && (
+              <p className="text-xs font-bold mb-1" style={{ color: "#7c3aed" }}>
+                {product.brand}
+              </p>
+            )}
+            <h2 className="text-sm font-bold leading-snug" style={{ color: "#1a1a2e" }}>
+              {product.name}
+            </h2>
+            <p className="text-xs mt-2" style={{ color: "#9d98b8" }}>
+              리뷰 {reviews.length}개 수집됨
+            </p>
           </div>
         </div>
+
         {/* 관심 속성 선택 */}
-        <div className="bg-white rounded-2xl shadow p-4 space-y-2">
-          <p className="text-sm font-semibold text-gray-700">관심 있는 항목 선택</p>
-          <p className="text-xs text-gray-400">선택한 항목만 그래프에 표시됩니다. 설정은 자동 저장됩니다.</p>
-          <div className="flex flex-wrap gap-2 pt-1">
+        <div
+          className="rounded-2xl p-4 space-y-3"
+          style={{
+            background: "rgba(255,255,255,0.8)",
+            border: "1px solid rgba(139,92,246,0.1)",
+            boxShadow: "0 2px 16px rgba(109,40,217,0.06)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold" style={{ color: "#6d28d9", letterSpacing: "0.06em" }}>
+              관심 속성
+            </p>
+            <span className="text-xs" style={{ color: "#bdb8d4" }}>
+              {visibleAspects.length} / {ALL_ASPECTS.length}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
             {ALL_ASPECTS.map(({ key, label }) => {
               const active = visibleAspects.includes(key);
+              const score = analysis?.scores[key];
+              const grade = score !== undefined ? scoreGrade(score) : null;
               return (
                 <button
                   key={key}
                   onClick={() => toggleAspect(key)}
-                  className={`text-xs px-3 py-1.5 rounded-full border font-medium transition ${
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150"
+                  style={
                     active
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "text-gray-400 border-gray-300 hover:border-indigo-400"
-                  }`}
+                      ? {
+                          background: "rgba(124,58,237,0.1)",
+                          border: "1.5px solid rgba(124,58,237,0.35)",
+                          color: "#6d28d9",
+                        }
+                      : {
+                          background: "#f5f3ff",
+                          border: "1.5px solid #e5e0f5",
+                          color: "#9d98b8",
+                        }
+                  }
                 >
+                  {grade && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ background: active ? grade.color : "#d4d0e8" }}
+                    />
+                  )}
                   {label}
                 </button>
               );
@@ -132,88 +235,199 @@ export default function ProductDetail() {
           </div>
         </div>
 
+        {/* 분석 전 */}
         {!analysis && (
-          <div className="bg-white rounded-2xl shadow p-6 text-center space-y-3">
-            <p className="text-gray-600">
-              수집된 리뷰 <strong>{reviews.length}개</strong>에 대한 ABSA 분석을 실행합니다.
-            </p>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+          <div
+            className="rounded-2xl p-8 text-center space-y-4"
+            style={{
+              background: "rgba(255,255,255,0.8)",
+              border: "1px solid rgba(139,92,246,0.1)",
+              boxShadow: "0 2px 16px rgba(109,40,217,0.06)",
+            }}
+          >
+            <div
+              className="w-12 h-12 mx-auto rounded-2xl flex items-center justify-center"
+              style={{ background: "rgba(124,58,237,0.08)", border: "1.5px solid rgba(124,58,237,0.2)" }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35M11 8v6M8 11h6" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold mb-1" style={{ color: "#1a1a2e" }}>
+                리뷰 {reviews.length}개 분석 준비 완료
+              </p>
+              <p className="text-xs" style={{ color: "#7c6fa0" }}>
+                13가지 속성별 감성 점수를 AI가 분석합니다
+              </p>
+            </div>
+            {error && (
+              <p className="text-xs py-2 px-3 rounded-xl" style={{ color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca" }}>
+                {error}
+              </p>
+            )}
             <button
               onClick={runAnalysis}
               disabled={analyzing}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-semibold transition"
+              className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+              style={{
+                background: analyzing ? "#c4b5fd" : "linear-gradient(135deg, #7c3aed, #9333ea)",
+                color: "#fff",
+                boxShadow: analyzing ? "none" : "0 4px 20px rgba(124,58,237,0.3)",
+              }}
             >
-              {analyzing ? "분석 중..." : "AI 분석 시작"}
+              {analyzing ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  분석 중…
+                </span>
+              ) : "AI 분석 시작"}
             </button>
           </div>
         )}
 
+        {/* 분석 결과 */}
         {analysis && (
-          <div className="bg-white rounded-2xl shadow p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-gray-800">속성별 감성 점수</h3>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-400">리뷰 {analysis.review_count}개 기반</span>
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: "rgba(255,255,255,0.8)",
+              border: "1px solid rgba(139,92,246,0.1)",
+              boxShadow: "0 2px 16px rgba(109,40,217,0.06)",
+            }}
+          >
+            {/* 상단 헤더 + 상위 3점수 */}
+            <div className="px-5 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(139,92,246,0.08)" }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold" style={{ color: "#1a1a2e" }}>
+                    속성별 감성 점수
+                  </h3>
+                  <p className="text-xs mt-0.5" style={{ color: "#9d98b8" }}>
+                    리뷰 {analysis.review_count}개 기반
+                  </p>
+                </div>
                 <button
                   onClick={runAnalysis}
                   disabled={analyzing}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-50 border border-indigo-300 rounded px-2 py-1 transition"
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150"
+                  style={{
+                    color: "#7c3aed",
+                    background: "rgba(124,58,237,0.07)",
+                    border: "1px solid rgba(124,58,237,0.2)",
+                  }}
                 >
-                  {analyzing ? "분석 중..." : "재분석"}
+                  {analyzing ? "분석 중…" : "재분석"}
                 </button>
               </div>
+
+              {topScores.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {topScores.map(({ key, label, score, color, bg }) => (
+                    <div
+                      key={key}
+                      className="rounded-xl p-3 text-center"
+                      style={{ background: bg, border: `1px solid ${color}22` }}
+                    >
+                      <div className="text-2xl font-extrabold" style={{ color }}>
+                        {Math.round(score * 100)}
+                      </div>
+                      <div className="text-xs mt-0.5" style={{ color: "#7c6fa0" }}>
+                        {label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && (
+              <div className="px-5 pt-3">
+                <p className="text-xs py-2 px-3 rounded-xl" style={{ color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca" }}>
+                  {error}
+                </p>
+              </div>
+            )}
 
-            <div className="flex gap-2 border-b pb-2">
+            {/* 탭 */}
+            <div className="flex px-5 pt-3 gap-6" style={{ borderBottom: "1px solid rgba(139,92,246,0.08)" }}>
               {(["radar", "bars", "reviews"] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`text-sm px-3 py-1 rounded-full transition ${
-                    tab === t
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-500 hover:bg-gray-100"
-                  }`}
+                  className="pb-3 text-sm font-semibold transition-all duration-150 relative"
+                  style={{ color: tab === t ? "#7c3aed" : "#9d98b8" }}
                 >
                   {t === "radar" ? "레이더" : t === "bars" ? "막대" : "리뷰"}
+                  {tab === t && (
+                    <span
+                      className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                      style={{ background: "linear-gradient(to right, #7c3aed, #a855f7)" }}
+                    />
+                  )}
                 </button>
               ))}
             </div>
 
-            {tab === "radar" && (
-              <ScoreRadar
-                scores={analysis.scores}
-                averages={averages}
-                summaries={analysis.summaries}
-                visibleAspects={visibleAspects}
-              />
-            )}
-            {tab === "bars" && (
-              <ScoreBars
-                scores={analysis.scores}
-                averages={averages}
-                summaries={analysis.summaries}
-                visibleAspects={visibleAspects}
-              />
-            )}
-            {tab === "reviews" && (
-              <ul className="space-y-3 max-h-96 overflow-y-auto">
-                {reviews.map((r) => (
-                  <li key={r.id} className="border rounded-lg p-3 text-sm">
-                    <div className="flex justify-between text-xs text-gray-400 mb-1">
-                      <span>{r.reviewer ?? "익명"}</span>
-                      <span>{"★".repeat(r.rating ?? 0)}</span>
-                    </div>
-                    <p className="text-gray-700 leading-relaxed">{r.body}</p>
-                    {r.size_bought && (
-                      <p className="text-xs text-gray-400 mt-1">구매 옵션: {r.size_bought}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+            {/* 탭 콘텐츠 */}
+            <div className="p-5">
+              {tab === "radar" && (
+                <ScoreRadar
+                  scores={analysis.scores}
+                  averages={averages}
+                  summaries={analysis.summaries}
+                  visibleAspects={visibleAspects}
+                />
+              )}
+              {tab === "bars" && (
+                <ScoreBars
+                  scores={analysis.scores}
+                  averages={averages}
+                  summaries={analysis.summaries}
+                  visibleAspects={visibleAspects}
+                />
+              )}
+              {tab === "reviews" && (
+                <ul className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+                  {reviews.map((r) => (
+                    <li
+                      key={r.id}
+                      className="rounded-xl p-4"
+                      style={{ background: "#faf8ff", border: "1px solid rgba(139,92,246,0.08)" }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium" style={{ color: "#9d98b8" }}>
+                          {r.reviewer ?? "익명"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {r.size_bought && (
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-lg"
+                              style={{ color: "#7c6fa0", background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.12)" }}
+                            >
+                              {r.size_bought}
+                            </span>
+                          )}
+                          {r.rating !== null && (
+                            <span className="text-xs" style={{ color: "#f59e0b" }}>
+                              {"★".repeat(r.rating)}
+                              <span style={{ color: "#e5e0f5" }}>{"★".repeat(5 - r.rating)}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm leading-relaxed" style={{ color: "#3d3960" }}>
+                        {r.body}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
       </main>

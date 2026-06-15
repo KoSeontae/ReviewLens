@@ -35,16 +35,27 @@ function CustomTooltip({ active, payload, summaries }: CustomTooltipProps) {
   const summary = key && summaries?.[key];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-sm max-w-xs">
+    <div
+      className="rounded-xl p-3 text-sm max-w-xs"
+      style={{
+        background: "#fff",
+        border: "1px solid rgba(124,58,237,0.15)",
+        boxShadow: "0 8px 24px rgba(109,40,217,0.12)",
+      }}
+    >
       {payload.map((p) => (
-        <div key={p.name} className="text-gray-700">
-          <span className="font-semibold">{p.name}: </span>
-          {p.value === null ? "데이터 없음" : `${p.value}점`}
+        <div key={p.name} className="flex items-center justify-between gap-4">
+          <span style={{ color: "#9d98b8", fontSize: 12 }}>{p.name}</span>
+          <span className="font-bold" style={{ color: p.name === "이 상품" ? "#7c3aed" : "#bdb8d4" }}>
+            {p.value === null ? "—" : `${p.value}점`}
+          </span>
         </div>
       ))}
       {summary && (
-        <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500 leading-relaxed">
-          <span className="font-semibold text-gray-600">리뷰 요약 · </span>
+        <div
+          className="mt-2 pt-2 text-xs leading-relaxed"
+          style={{ borderTop: "1px solid #f0ecff", color: "#7c6fa0" }}
+        >
           {summary}
         </div>
       )}
@@ -68,33 +79,40 @@ export default function ScoreRadar({ scores, averages = {}, summaries, visibleAs
     <div>
       <ResponsiveContainer width="100%" height={300}>
         <RadarChart data={data}>
-          <PolarGrid />
-          <PolarAngleAxis dataKey="subject" />
-          <PolarRadiusAxis domain={[0, 100]} tick={false} />
+          <PolarGrid stroke="rgba(139,92,246,0.12)" />
+          <PolarAngleAxis
+            dataKey="subject"
+            tick={{ fill: "#7c6fa0", fontSize: 11 }}
+          />
+          <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
           {hasAverages && (
             <Radar
               name="전체 평균"
               dataKey="average"
-              stroke="#9ca3af"
-              fill="#9ca3af"
-              fillOpacity={0.15}
+              stroke="#c4b5fd"
+              fill="rgba(196,181,253,0.15)"
               strokeDasharray="4 3"
+              strokeWidth={1.5}
             />
           )}
           <Radar
             name="이 상품"
             dataKey="score"
-            stroke="#6366f1"
-            fill="#6366f1"
-            fillOpacity={0.4}
+            stroke="#7c3aed"
+            fill="rgba(124,58,237,0.15)"
+            strokeWidth={2}
           />
           <Tooltip content={<CustomTooltip summaries={summaries} />} />
-          {hasAverages && <Legend />}
+          {hasAverages && (
+            <Legend
+              wrapperStyle={{ fontSize: 12, color: "#9d98b8", paddingTop: 8 }}
+            />
+          )}
         </RadarChart>
       </ResponsiveContainer>
       {aspects.some(({ key }) => !(key in scores)) && (
-        <p className="text-xs text-gray-400 text-center mt-1">
-          * 리뷰에서 언급되지 않은 속성은 차트에 표시되지 않습니다
+        <p className="text-xs text-center mt-1" style={{ color: "#bdb8d4" }}>
+          * 리뷰에서 언급되지 않은 속성은 표시되지 않습니다
         </p>
       )}
     </div>

@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { ALL_ASPECTS } from "../api";
 
-const scoreColor = (score: number) => {
-  if (score >= 0.75) return "bg-indigo-500";
-  if (score >= 0.5) return "bg-yellow-400";
-  return "bg-red-400";
-};
+function barGradient(score: number): string {
+  if (score >= 0.75) return "linear-gradient(to right, #6d28d9, #a78bfa)";
+  if (score >= 0.5) return "linear-gradient(to right, #b45309, #fbbf24)";
+  return "linear-gradient(to right, #b91c1c, #f87171)";
+}
+
+function scoreColor(score: number): string {
+  if (score >= 0.75) return "#7c3aed";
+  if (score >= 0.5) return "#d97706";
+  return "#dc2626";
+}
 
 interface Props {
   scores: Record<string, number>;
@@ -20,17 +26,20 @@ export default function ScoreBars({ scores, averages = {}, summaries, visibleAsp
   const aspects = ALL_ASPECTS.filter((a) => visibleAspects.includes(a.key));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {hasAverages && (
-        <div className="flex items-center gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-3 rounded-full bg-indigo-500" /> 이 상품
+        <div className="flex items-center gap-4 text-xs" style={{ color: "#9d98b8" }}>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: "#7c3aed" }} />
+            이 상품
           </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-1 bg-gray-400" /> 전체 평균
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-0.5 rounded" style={{ background: "#c4b5fd" }} />
+            전체 평균
           </span>
         </div>
       )}
+
       {aspects.map(({ key, label }) => {
         const score = scores[key];
         const avg = averages[key];
@@ -39,11 +48,11 @@ export default function ScoreBars({ scores, averages = {}, summaries, visibleAsp
         if (score === undefined) {
           return (
             <div key={key}>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="font-medium text-gray-400">{label}</span>
-                <span className="text-gray-300 text-xs">언급 없음</span>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium" style={{ color: "#bdb8d4" }}>{label}</span>
+                <span className="text-xs" style={{ color: "#d4d0e8" }}>언급 없음</span>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-2.5" />
+              <div className="w-full rounded-full h-2" style={{ background: "#f0ecff" }} />
             </div>
           );
         }
@@ -58,30 +67,40 @@ export default function ScoreBars({ scores, averages = {}, summaries, visibleAsp
             onMouseEnter={() => setHovered(key)}
             onMouseLeave={() => setHovered(null)}
           >
-            <div className="flex justify-between text-sm mb-1">
-              <span className="font-medium text-gray-700">{label}</span>
-              <span className="text-gray-500">
-                {pct}%
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium" style={{ color: "#3d3960" }}>{label}</span>
+              <div className="flex items-center gap-2">
                 {avgPct !== null && (
-                  <span className="text-gray-400 ml-1 text-xs">(평균 {avgPct}%)</span>
+                  <span className="text-xs" style={{ color: "#bdb8d4" }}>평균 {avgPct}</span>
                 )}
-              </span>
+                <span className="text-sm font-bold tabular-nums" style={{ color: scoreColor(score) }}>
+                  {pct}
+                </span>
+              </div>
             </div>
-            <div className="relative w-full bg-gray-100 rounded-full h-2.5">
+
+            <div className="relative w-full rounded-full h-2" style={{ background: "#f0ecff" }}>
               <div
-                className={`${scoreColor(score)} h-2.5 rounded-full transition-all duration-500`}
-                style={{ width: `${pct}%` }}
+                className="h-2 rounded-full transition-all duration-700"
+                style={{ width: `${pct}%`, background: barGradient(score) }}
               />
               {avgPct !== null && (
                 <div
-                  className="absolute top-0 h-2.5 w-0.5 bg-gray-500 rounded"
-                  style={{ left: `${avgPct}%` }}
+                  className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3.5 rounded-full"
+                  style={{ left: `${avgPct}%`, background: "#c4b5fd" }}
                 />
               )}
             </div>
+
             {hovered === key && summary && (
-              <div className="mt-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 leading-relaxed">
-                <span className="font-semibold text-gray-600">리뷰 요약 · </span>
+              <div
+                className="mt-2 text-xs leading-relaxed px-3 py-2.5 rounded-xl"
+                style={{
+                  color: "#7c6fa0",
+                  background: "rgba(124,58,237,0.05)",
+                  border: "1px solid rgba(124,58,237,0.15)",
+                }}
+              >
                 {summary}
               </div>
             )}
