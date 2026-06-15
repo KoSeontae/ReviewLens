@@ -2,16 +2,17 @@
 
 패션 쇼핑몰 리뷰 기반 속성 감성 분석(ABSA) 서비스
 
-쇼핑몰 사이트(이블리, 무신사, 지그재그)의 상품 리뷰를 수집하고, 핏·소재·마감 등 13가지 속성별로 감성 점수를 분석합니다.
+쇼핑몰 상품 URL 또는 ID를 입력하면 리뷰를 수집하고, 핏·소재·마감 등 13가지 속성별로 감성 점수를 분석합니다.
 사용자가 관심 있는 항목을 선택해 개인화된 분석 결과를 확인할 수 있습니다.
 
 ## 주요 기능
 
-- **멀티 쇼핑몰 지원** — 에이블리 / 무신사 / 지그재그 URL 붙여넣기로 바로 분석
+- **멀티 쇼핑몰 지원** — 에이블리 / 무신사 / 지그재그 / 하이버 URL 붙여넣기로 바로 분석
 - **13가지 속성 분석** — 핏, 소재, 마감, 사이즈, 가격, 색상, 디자인, 착용감, 배송, 관리, 비침, 신축성, 계절감
+- **키워드별 자연스러운 요약** — 각 속성 툴팁에 키워드 맞춤 문장으로 점수 근거 표시
 - **개인화 필터** — 관심 항목만 선택해 레이더/막대 차트에 표시 (localStorage 저장)
 - **전체 평균 비교** — 분석된 상품들의 평균과 현재 상품 점수 비교
-- **리뷰 요약** — 각 속성 툴팁에 점수 근거 문장 표시
+- **HuggingFace Inference API** — `hun3359/klue-bert-base-sentiment` 모델을 HF 서버 GPU에서 배치 추론
 
 ## 프로젝트 구조
 
@@ -20,10 +21,11 @@ ReviewLens/
 ├── crawler/
 │   ├── ably.py        # 에이블리 크롤러 (REST API)
 │   ├── musinsa.py     # 무신사 크롤러 (REST API)
-│   └── zigzag.py      # 지그재그 크롤러 (GraphQL API)
+│   ├── zigzag.py      # 지그재그 크롤러 (GraphQL API)
+│   └── hiver.py       # 하이버 크롤러 (Brandi REST API)
 ├── analysis/
 │   ├── aspects.py     # 속성 정의 및 키워드
-│   └── absa.py        # ABSA 분석 (klue-bert-base-sentiment)
+│   └── absa.py        # ABSA 분석 (HuggingFace Inference API)
 ├── api/
 │   ├── main.py
 │   ├── models.py
@@ -46,13 +48,15 @@ ReviewLens/
 
 ### 사전 준비
 
-`.env` 파일을 프로젝트 루트에 생성하고 에이블리 토큰을 입력합니다.
+`.env` 파일을 프로젝트 루트에 생성합니다.
 
 ```
 ABLY_ANONYMOUS_TOKEN=여기에_토큰_입력
+HF_TOKEN=여기에_토큰_입력
 ```
 
-에이블리 토큰은 브라우저에서 `m.a-bly.com` 접속 후 Network 탭 → 아무 API 요청 헤더의 `x-anonymous-token` 값을 복사합니다.
+- **ABLY_ANONYMOUS_TOKEN** — 브라우저에서 `m.a-bly.com` 접속 후 Network 탭 → 아무 API 요청 헤더의 `x-anonymous-token` 값 복사
+- **HF_TOKEN** — [HuggingFace](https://huggingface.co/settings/tokens)에서 Read 권한 토큰 발급
 
 ### 백엔드
 
@@ -60,8 +64,7 @@ ABLY_ANONYMOUS_TOKEN=여기에_토큰_입력
 # 가상환경 생성 및 활성화
 python -m venv venv && source venv/bin/activate
 
-# 의존성 설치 (CPU 전용 torch)
-pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+# 의존성 설치
 pip install -r requirements.txt
 
 # 서버 실행
@@ -113,6 +116,7 @@ npm run dev
 
 | 쇼핑몰 | URL 형식 |
 |--------|---------|
-| 에이블리 | `m.a-bly.com/goods/{상품ID}` |
+| 에이블리 | `a-bly.com/goods/{상품ID}` |
 | 무신사 | `musinsa.com/products/{상품ID}` |
 | 지그재그 | `zigzag.kr/catalog/products/{상품ID}` |
+| 하이버 | `hiver.co.kr/products/{상품ID}` |
