@@ -222,11 +222,11 @@ export default function Landing() {
           </Reveal>
         </section>
 
-        {/* ── C. 숫자로 보는 ReviewLens ── */}
+        {/* ── C. ReviewLens만의 특징 ── */}
         <section>
           <Reveal delay={0}>
             <p className="text-xs font-semibold mb-5 text-center" style={{ color: "#9d98b8", letterSpacing: "0.1em" }}>
-              숫자로 보는 ReviewLens
+              ReviewLens만의 특징
             </p>
           </Reveal>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
