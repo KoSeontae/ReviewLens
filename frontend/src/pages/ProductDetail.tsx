@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { api, ALL_ASPECTS } from "../api";
-import type { Product, AnalysisResult, Review, Source } from "../api";
+import type { Product, AnalysisResult, Review, Source, FitRecommendation } from "../api";
 import ScoreRadar from "../components/ScoreRadar";
 import ScoreBars from "../components/ScoreBars";
 
@@ -41,6 +41,20 @@ function saveAspectWeights(weights: Record<string, number>) {
   localStorage.setItem(WEIGHTS_KEY, JSON.stringify(weights));
 }
 
+const BODY_KEY = "reviewlens_body_info";
+
+function loadBodyInfo(): { height: string; weight: string } {
+  try {
+    const saved = localStorage.getItem(BODY_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return { height: "", weight: "" };
+}
+
+function saveBodyInfo(info: { height: string; weight: string }) {
+  localStorage.setItem(BODY_KEY, JSON.stringify(info));
+}
+
 function scoreGrade(score: number): { color: string; bg: string } {
   if (score >= 0.8) return { color: "#059669", bg: "#ecfdf5" };
   if (score >= 0.65) return { color: "#7c3aed", bg: "#f5f3ff" };
@@ -57,6 +71,10 @@ export default function ProductDetail() {
   const [averages, setAverages] = useState<Record<string, number>>({});
   const [visibleAspects, setVisibleAspects] = useState<string[]>(loadVisibleAspects);
   const [aspectWeights, setAspectWeights] = useState<Record<string, number>>(loadAspectWeights);
+  const [bodyInfo, setBodyInfo] = useState(loadBodyInfo);
+  const [fitResult, setFitResult] = useState<FitRecommendation | null>(null);
+  const [fitLoading, setFitLoading] = useState(false);
+  const [fitError, setFitError] = useState("");
   const [tab, setTab] = useState<Tab>("radar");
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -76,6 +94,26 @@ export default function ProductDetail() {
       saveAspectWeights(next);
       return next;
     });
+  };
+
+  const runFitRecommendation = async () => {
+    if (!source || !code) return;
+    const height = Number(bodyInfo.height);
+    const weight = Number(bodyInfo.weight);
+    if (!height || !weight) {
+      setFitError("키와 몸무게를 모두 입력해주세요.");
+      return;
+    }
+    setFitLoading(true);
+    setFitError("");
+    try {
+      const result = await api.getFitRecommendation(source, code, height, weight);
+      setFitResult(result);
+    } catch {
+      setFitError("추천을 불러오는 데 실패했습니다.");
+    } finally {
+      setFitLoading(false);
+    }
   };
 
   const toggleAspect = (key: string) => {
@@ -304,6 +342,113 @@ export default function ProductDetail() {
                 </div>
               </div>
             </>
+          )}
+        </div>
+
+        {/* 체형 유사 리뷰 추천 */}
+        <div
+          className="rounded-2xl p-4 space-y-3"
+          style={{
+            background: "rgba(255,255,255,0.8)",
+            border: "1px solid rgba(139,92,246,0.1)",
+            boxShadow: "0 2px 16px rgba(109,40,217,0.06)",
+          }}
+        >
+          <div>
+            <p className="text-xs font-semibold" style={{ color: "#6d28d9", letterSpacing: "0.06em" }}>
+              내 체형과 비슷한 리뷰 추천
+            </p>
+            <p className="text-xs mt-1" style={{ color: "#9d98b8" }}>
+              키/몸무게를 입력하면 비슷한 체형 구매자들의 사이즈·핏 만족도를 보여드려요
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="number"
+              placeholder="키 (cm)"
+              value={bodyInfo.height}
+              onChange={(e) => {
+                const next = { ...bodyInfo, height: e.target.value };
+                setBodyInfo(next);
+                saveBodyInfo(next);
+                setFitError("");
+              }}
+              className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+              style={{ background: "#faf8ff", border: "1.5px solid rgba(109,40,217,0.15)", color: "#1a1a2e" }}
+            />
+            <input
+              type="number"
+              placeholder="몸무게 (kg)"
+              value={bodyInfo.weight}
+              onChange={(e) => {
+                const next = { ...bodyInfo, weight: e.target.value };
+                setBodyInfo(next);
+                saveBodyInfo(next);
+                setFitError("");
+              }}
+              className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+              style={{ background: "#faf8ff", border: "1.5px solid rgba(109,40,217,0.15)", color: "#1a1a2e" }}
+            />
+            <button
+              onClick={runFitRecommendation}
+              disabled={fitLoading}
+              className="px-4 py-2 rounded-xl text-sm font-semibold flex-shrink-0"
+              style={{
+                background: fitLoading ? "#c4b5fd" : "linear-gradient(135deg, #7c3aed, #9333ea)",
+                color: "#fff",
+              }}
+            >
+              {fitLoading ? "분석 중…" : "추천 보기"}
+            </button>
+          </div>
+
+          {fitError && (
+            <p className="text-xs py-2 px-3 rounded-xl" style={{ color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca" }}>
+              {fitError}
+            </p>
+          )}
+
+          {fitResult && (
+            <div className="rounded-xl p-4 space-y-3" style={{ background: "#faf8ff", border: "1px solid rgba(139,92,246,0.08)" }}>
+              <p className="text-sm leading-relaxed" style={{ color: "#3d3960" }}>
+                {fitResult.text}
+              </p>
+
+              {fitResult.size_distribution.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold" style={{ color: "#9d98b8" }}>구매 사이즈 비율</p>
+                  {fitResult.size_distribution.map((d) => (
+                    <div key={d.label}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs break-all pr-2" style={{ color: "#3d3960" }}>{d.label}</span>
+                        <span className="text-xs font-bold flex-shrink-0" style={{ color: "#7c3aed" }}>{d.ratio}%</span>
+                      </div>
+                      <div className="rounded-full h-2" style={{ background: "#f0ecff" }}>
+                        <div className="h-2 rounded-full" style={{ width: `${d.ratio}%`, background: "linear-gradient(to right, #6d28d9, #a78bfa)" }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {fitResult.fit_distribution.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold" style={{ color: "#9d98b8" }}>핏 만족도 비율</p>
+                  {fitResult.fit_distribution.map((d) => (
+                    <div key={d.label}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs break-all pr-2" style={{ color: "#3d3960" }}>{d.label}</span>
+                        <span className="text-xs font-bold flex-shrink-0" style={{ color: "#059669" }}>{d.ratio}%</span>
+                      </div>
+                      <div className="rounded-full h-2" style={{ background: "#f0ecff" }}>
+                        <div className="h-2 rounded-full" style={{ width: `${d.ratio}%`, background: "linear-gradient(to right, #059669, #34d399)" }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
 

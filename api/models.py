@@ -18,6 +18,7 @@ class Product(Base):
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="product", cascade="all, delete-orphan")
     analysis: Mapped[list["AnalysisResult"]] = relationship(back_populates="product", cascade="all, delete-orphan")
+    body_fit_reviews: Mapped[list["BodyFitReview"]] = relationship(back_populates="product", cascade="all, delete-orphan")
 
 
 class Review(Base):
@@ -34,6 +35,21 @@ class Review(Base):
     crawled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     product: Mapped["Product"] = relationship(back_populates="reviews")
+
+
+class BodyFitReview(Base):
+    """체형 유사 리뷰 추천 전용 데이터. ABSA 분석(Review/AnalysisResult)과는 분리되어 있습니다."""
+    __tablename__ = "body_fit_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    height: Mapped[int] = mapped_column(Integer, nullable=True)
+    weight: Mapped[int] = mapped_column(Integer, nullable=True)
+    size_bought: Mapped[str] = mapped_column(String(64), nullable=True)
+    fit_verdict: Mapped[str] = mapped_column(String(16), nullable=True)  # small | fit | big | unknown
+    crawled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    product: Mapped["Product"] = relationship(back_populates="body_fit_reviews")
 
 
 class AnalysisResult(Base):

@@ -209,6 +209,141 @@ async def crawl_product_reviews(
     return reviews
 
 
+_FIT_QUERY = """
+query GetReviewSearchList($input: UxReviewSearchListInput!) {
+  ux_review_search_list(input: $input) {
+    has_next
+    end_cursor
+    component_list {
+      type
+      ... on UxReviewListItem {
+        review {
+          reviewer {
+            body_text
+          }
+          product_info {
+            option_detail_list {
+              name
+              value
+            }
+          }
+          attribute_list {
+            question {
+              category
+            }
+            answer {
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
+@dataclass
+class FitReview:
+    height: Optional[int]
+    weight: Optional[int]
+    size_bought: Optional[str]
+    fit_raw_label: Optional[str]  # 예: "FIT", "SMALL", "BIG"
+
+
+async def _fetch_fit_page(
+    client: httpx.AsyncClient,
+    product_id: str,
+    cursor: Optional[str],
+) -> tuple[list[dict], bool, Optional[str]]:
+    variables: dict = {
+        "input": {
+            "product_id": product_id,
+            "order": "SCORE_DESC",
+            "body_filter": {
+                "my_body_filter_checked": False,
+                "similar_body_filter_checked": False,
+                "option_list": [],
+                "has_my_body_reviews": None,
+            },
+            "option_detail_list": [],
+            "topic_list": [],
+            "type_list": [],
+            "cursor": {"end_cursor": cursor, "limit_count": 20},
+        }
+    }
+    payload = [{"operationName": "GetReviewSearchList", "query": _FIT_QUERY, "variables": variables}]
+    try:
+        resp = await client.post(_GQL_URL, json=payload, headers=_HEADERS, timeout=15)
+        resp.raise_for_status()
+        body = resp.json()
+        data = body[0].get("data", {}).get("ux_review_search_list", {})
+        items = data.get("component_list", [])
+        has_next = data.get("has_next", False)
+        end_cursor = data.get("end_cursor")
+        return items, has_next, end_cursor
+    except Exception:
+        return [], False, None
+
+
+def _height_weight_from_body_text(body_text: str) -> tuple[Optional[int], Optional[int]]:
+    height_str, weight_str = _parse_body_text(body_text)
+    height = int(height_str.replace("cm", "")) if height_str else None
+    weight = int(weight_str.replace("kg", "")) if weight_str else None
+    return height, weight
+
+
+async def crawl_fit_reviews(
+    product_id: str,
+    max_reviews: int = 200,
+) -> list[FitReview]:
+    """체형 유사 추천용 핏 데이터(키/몸무게/구매사이즈/사이즈 만족도)를 수집합니다."""
+    fit_reviews: list[FitReview] = []
+    cursor: Optional[str] = None
+
+    async with httpx.AsyncClient() as client:
+        while len(fit_reviews) < max_reviews:
+            items, has_next, cursor = await _fetch_fit_page(client, product_id, cursor)
+            if not items:
+                break
+
+            for item in items:
+                if item.get("type") != "REVIEW_SEARCH_ITEM":
+                    continue
+                review = item.get("review")
+                if not review:
+                    continue
+
+                body_text = (review.get("reviewer") or {}).get("body_text", "")
+                height, weight = _height_weight_from_body_text(body_text)
+
+                options = (review.get("product_info") or {}).get("option_detail_list", [])
+                size_bought = next((o.get("value") for o in options if o.get("name") == "사이즈"), None)
+
+                fit_raw_label = None
+                for attr in review.get("attribute_list") or []:
+                    if (attr.get("question") or {}).get("category") == "사이즈":
+                        fit_raw_label = (attr.get("answer") or {}).get("value")
+                        break
+
+                fit_reviews.append(FitReview(
+                    height=height,
+                    weight=weight,
+                    size_bought=size_bought,
+                    fit_raw_label=fit_raw_label,
+                ))
+
+                if len(fit_reviews) >= max_reviews:
+                    break
+
+            if not has_next:
+                break
+
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+
+    return fit_reviews
+
+
 if __name__ == "__main__":
     import json
 

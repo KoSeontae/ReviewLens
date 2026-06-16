@@ -127,6 +127,61 @@ async def crawl_product_reviews(
     return reviews
 
 
+@dataclass
+class FitReview:
+    height: Optional[int]
+    weight: Optional[int]
+    size_bought: Optional[str]
+    fit_raw_label: Optional[str]  # 예: "정사이즈", "조금 작음"
+
+
+async def crawl_fit_reviews(
+    product_id: str,
+    max_reviews: int = 200,
+) -> list[FitReview]:
+    """체형 유사 추천용 핏 데이터(키/몸무게/구매사이즈/사이즈 만족도)를 수집합니다."""
+    fit_reviews: list[FitReview] = []
+
+    async with httpx.AsyncClient() as client:
+        page = 1
+        while len(fit_reviews) < max_reviews:
+            items, total = await _fetch_review_page(client, product_id, page)
+            if not items:
+                break
+
+            for item in items:
+                if len(fit_reviews) >= max_reviews:
+                    break
+
+                profile = item.get("userProfileInfo") or {}
+                height = profile.get("userHeight")
+                weight = profile.get("userWeight")
+
+                fit_raw_label = None
+                survey = item.get("reviewSurveySatisfaction") or {}
+                for q in survey.get("questions", []):
+                    if q.get("attribute") == "사이즈":
+                        answers = q.get("answers") or []
+                        if answers:
+                            fit_raw_label = answers[0].get("answerShortText")
+                        break
+
+                fit_reviews.append(FitReview(
+                    height=int(height) if height else None,
+                    weight=int(weight) if weight else None,
+                    size_bought=item.get("goodsOption"),
+                    fit_raw_label=fit_raw_label,
+                ))
+
+            if len(fit_reviews) >= total:
+                break
+
+            page += 1
+            await _random_delay()
+
+    return fit_reviews
+
+
 if __name__ == "__main__":
     import json
 

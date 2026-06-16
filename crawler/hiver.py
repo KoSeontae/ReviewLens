@@ -171,6 +171,79 @@ async def crawl_product_reviews(
     return reviews
 
 
+@dataclass
+class FitReview:
+    height: Optional[int]
+    weight: Optional[int]
+    size_bought: Optional[str]
+    fit_raw_label: Optional[str]  # 예: "잘 맞아요"
+
+
+async def crawl_fit_reviews(
+    product_id: str,
+    max_reviews: int = 200,
+) -> list[FitReview]:
+    """체형 유사 추천용 핏 데이터(키/몸무게/구매사이즈/착용감)를 수집합니다."""
+    fit_reviews: list[FitReview] = []
+    seen_ids: set[str] = set()
+
+    async with httpx.AsyncClient() as client:
+        offset = 0
+        is_first = True
+        page_size = 20
+
+        while len(fit_reviews) < max_reviews:
+            resp_json = await _fetch_review_page(client, product_id, offset, is_first)
+            if not resp_json:
+                break
+
+            raw = resp_json.get("data", {})
+            items: list[dict] = []
+            page_reviews: list[dict] = []
+            if isinstance(raw, list):
+                items.extend(raw)
+                page_reviews = raw
+            else:
+                if is_first:
+                    items.extend(raw.get("top_photo_reviews") or [])
+                page_reviews = raw.get("reviews") or []
+                items.extend(page_reviews)
+
+            if not items:
+                break
+
+            for item in items:
+                if len(fit_reviews) >= max_reviews:
+                    break
+                review_id = str(item.get("id", ""))
+                if review_id in seen_ids:
+                    continue
+                seen_ids.add(review_id)
+
+                user = item.get("user") or {}
+                product = item.get("product") or {}
+                evaluation = item.get("evaluation") or {}
+
+                raw_height = user.get("height") or 0
+                raw_weight = user.get("weight") or 0
+
+                fit_reviews.append(FitReview(
+                    height=int(raw_height) if raw_height else None,
+                    weight=int(raw_weight) if raw_weight else None,
+                    size_bought=product.get("option_name"),
+                    fit_raw_label=evaluation.get("wearing_sensation"),
+                ))
+
+            if len(page_reviews) < page_size:
+                break
+
+            offset += page_size
+            is_first = False
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+
+    return fit_reviews
+
+
 if __name__ == "__main__":
     import json
 

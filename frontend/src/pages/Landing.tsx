@@ -151,6 +151,15 @@ const FEATURES = [
     title: "나만의 종합 점수",
     desc: "관심 속성마다 중요도(1~5)를 직접 설정하면, 내 기준으로 가중 평균한 종합 점수를 바로 확인할 수 있습니다.",
   },
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/>
+      </svg>
+    ),
+    title: "체형 유사 리뷰 추천",
+    desc: "키·몸무게를 입력하면 비슷한 체형의 구매자들이 고른 사이즈와 핏 만족도를 비율로 보여드립니다.",
+  },
 ];
 
 const SAMPLE_SCORES = [
@@ -308,7 +317,7 @@ export default function Landing() {
               주요 기능
             </p>
           </Reveal>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {FEATURES.map((f, i) => (
               <Reveal key={f.title} delay={i * 100}>
                 <div className="rounded-2xl p-5 flex flex-col gap-3 h-full" style={CARD_STYLE}>
@@ -447,6 +456,71 @@ export default function Landing() {
               <div className="text-4xl font-extrabold" style={{ color: "#059669" }}>87</div>
               <div className="text-sm font-semibold mt-1" style={{ color: "#059669", opacity: 0.85 }}>나의 종합 점수</div>
               <div className="text-xs mt-0.5" style={{ color: "#9d98b8" }}>관심 속성 가중 평균 · 4개 항목</div>
+            </div>
+          </div>
+        </Reveal>
+
+        {/* ── 체형 유사 리뷰 추천 미리보기 ── */}
+        <Reveal delay={0}>
+          <div className="rounded-2xl p-5" style={CARD_STYLE}>
+            <p className="text-sm font-bold mb-1" style={{ color: "#1a1a2e" }}>내 체형과 비슷한 리뷰 추천</p>
+            <p className="text-xs mb-4" style={{ color: "#9d98b8" }}>키·몸무게를 입력하면 비슷한 체형 구매자들의 사이즈·핏 만족도를 보여드려요</p>
+
+            {/* 입력 폼 */}
+            <div className="flex gap-2 mb-3">
+              <div className="flex-1 rounded-xl px-3 py-2 text-xs" style={{ background: "#faf8ff", border: "1.5px solid rgba(109,40,217,0.15)", color: "#1a1a2e" }}>
+                165
+              </div>
+              <div className="flex-1 rounded-xl px-3 py-2 text-xs" style={{ background: "#faf8ff", border: "1.5px solid rgba(109,40,217,0.15)", color: "#1a1a2e" }}>
+                52
+              </div>
+              <span
+                className="px-4 py-2 rounded-xl text-xs font-semibold flex-shrink-0 flex items-center"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #9333ea)", color: "#fff" }}
+              >
+                추천 보기
+              </span>
+            </div>
+
+            {/* 결과 카드 */}
+            <div className="rounded-xl p-4 space-y-3" style={{ background: "#faf8ff", border: "1px solid rgba(139,92,246,0.08)" }}>
+              <p className="text-xs leading-relaxed" style={{ color: "#3d3960" }}>
+                나와 비슷한 체형(165cm·52kg 전후) 구매자 23명을 분석했어요. 이 중 65%가 &apos;M&apos; 사이즈를 구매했고, 78%가 &apos;잘 맞아요&apos;라고 답했습니다.
+              </p>
+
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold" style={{ color: "#9d98b8" }}>구매 사이즈 비율</p>
+                {[
+                  { label: "M", ratio: 65 },
+                  { label: "S", ratio: 22 },
+                  { label: "L", ratio: 13 },
+                ].map((d) => (
+                  <div key={d.label} className="flex items-center gap-2">
+                    <span className="text-xs w-8 flex-shrink-0" style={{ color: "#3d3960" }}>{d.label}</span>
+                    <div className="flex-1 rounded-full h-2" style={{ background: "#f0ecff" }}>
+                      <div className="h-2 rounded-full" style={{ width: `${d.ratio}%`, background: "linear-gradient(to right, #6d28d9, #a78bfa)" }} />
+                    </div>
+                    <span className="text-xs font-bold w-10 text-right" style={{ color: "#7c3aed" }}>{d.ratio}%</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold" style={{ color: "#9d98b8" }}>핏 만족도 비율</p>
+                {[
+                  { label: "잘 맞아요", ratio: 78 },
+                  { label: "작아요", ratio: 14 },
+                  { label: "커요", ratio: 8 },
+                ].map((d) => (
+                  <div key={d.label} className="flex items-center gap-2">
+                    <span className="text-xs w-16 flex-shrink-0" style={{ color: "#3d3960" }}>{d.label}</span>
+                    <div className="flex-1 rounded-full h-2" style={{ background: "#f0ecff" }}>
+                      <div className="h-2 rounded-full" style={{ width: `${d.ratio}%`, background: "linear-gradient(to right, #059669, #34d399)" }} />
+                    </div>
+                    <span className="text-xs font-bold w-10 text-right" style={{ color: "#059669" }}>{d.ratio}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </Reveal>

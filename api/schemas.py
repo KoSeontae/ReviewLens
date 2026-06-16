@@ -48,3 +48,21 @@ class CrawlRequest(BaseModel):
 class AnalyzeRequest(BaseModel):
     source: Literal["ably", "musinsa", "zigzag", "hiver"]
     product_code: str
+
+
+class FitRecommendRequest(BaseModel):
+    height: int
+    weight: int
+
+
+class FitDistributionItem(BaseModel):
+    label: str
+    count: int
+    ratio: int
+
+
+class FitRecommendationOut(BaseModel):
+    sample_count: int
+    size_distribution: list[FitDistributionItem]
+    fit_distribution: list[FitDistributionItem]
+    text: str

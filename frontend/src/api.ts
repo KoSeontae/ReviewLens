@@ -73,4 +73,21 @@ export const api = {
       .then((r) => r.data),
   resolveUrl: (url: string) =>
     client.get<{ url: string }>("/products/resolve-url", { params: { url } }).then((r) => r.data.url),
+  getFitRecommendation: (source: Source, product_code: string, height: number, weight: number) =>
+    client
+      .post<FitRecommendation>(`/products/${source}/${product_code}/fit-recommendation`, { height, weight })
+      .then((r) => r.data),
 };
+
+export interface FitDistributionItem {
+  label: string;
+  count: number;
+  ratio: number;
+}
+
+export interface FitRecommendation {
+  sample_count: number;
+  size_distribution: FitDistributionItem[];
+  fit_distribution: FitDistributionItem[];
+  text: string;
+}

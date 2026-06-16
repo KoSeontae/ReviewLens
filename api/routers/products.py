@@ -3,9 +3,13 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from api.database import get_db
-from api.models import Product, Review, AnalysisResult
-from api.schemas import ProductOut, ReviewOut, AnalysisResultOut, CrawlRequest, AnalyzeRequest
+from api.models import Product, Review, AnalysisResult, BodyFitReview
+from api.schemas import (
+    ProductOut, ReviewOut, AnalysisResultOut, CrawlRequest, AnalyzeRequest,
+    FitRecommendRequest, FitRecommendationOut,
+)
 from analysis.absa import analyze_reviews
+from analysis.fit_recommender import normalize_fit_label, build_recommendation, FitReview as FitReviewData
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -61,6 +65,20 @@ def _get_crawler(source: str):
     else:
         raise HTTPException(status_code=400, detail=f"지원하지 않는 쇼핑몰: {source}")
     return crawl_product_reviews
+
+
+def _get_fit_crawler(source: str):
+    if source == "ably":
+        from crawler.ably import crawl_fit_reviews
+    elif source == "musinsa":
+        from crawler.musinsa import crawl_fit_reviews
+    elif source == "zigzag":
+        from crawler.zigzag import crawl_fit_reviews
+    elif source == "hiver":
+        from crawler.hiver import crawl_fit_reviews
+    else:
+        raise HTTPException(status_code=400, detail=f"지원하지 않는 쇼핑몰: {source}")
+    return crawl_fit_reviews
 
 
 @router.get("/averages", response_model=dict[str, float])
@@ -185,6 +203,51 @@ async def crawl_product(req: CrawlRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(product)
     return product
+
+
+@router.post("/{source}/{product_code}/fit-recommendation", response_model=FitRecommendationOut)
+async def fit_recommendation(
+    source: str,
+    product_code: str,
+    req: FitRecommendRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """입력한 키/몸무게와 비슷한 체형의 리뷰를 모아 사이즈·핏 만족도를 추천합니다."""
+    result = await db.execute(
+        select(Product).where(Product.source == source, Product.product_code == product_code)
+    )
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found. Crawl first.")
+
+    existing = await db.execute(select(BodyFitReview).where(BodyFitReview.product_id == product.id))
+    rows = existing.scalars().all()
+
+    if not rows:
+        crawl_fit = _get_fit_crawler(source)
+        raw_fit_reviews = await crawl_fit(product_code, 200)
+        for r in raw_fit_reviews:
+            db.add(BodyFitReview(
+                product_id=product.id,
+                height=r.height,
+                weight=r.weight,
+                size_bought=r.size_bought,
+                fit_verdict=normalize_fit_label(source, r.fit_raw_label),
+            ))
+        await db.commit()
+        existing = await db.execute(select(BodyFitReview).where(BodyFitReview.product_id == product.id))
+        rows = existing.scalars().all()
+
+    fit_reviews = [
+        FitReviewData(
+            height=r.height,
+            weight=r.weight,
+            size_bought=r.size_bought,
+            fit_verdict=r.fit_verdict or "unknown",
+        )
+        for r in rows
+    ]
+    return build_recommendation(fit_reviews, req.height, req.weight)
 
 
 @router.post("/analyze", response_model=AnalysisResultOut, status_code=201)
