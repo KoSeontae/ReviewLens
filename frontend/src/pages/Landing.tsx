@@ -60,7 +60,7 @@ const STEPS = [
   {
     num: "01",
     title: "URL 붙여넣기",
-    desc: "에이블리·무신사·지그재그·하이버 상품 페이지 URL을 그대로 붙여넣으세요.",
+    desc: "에이블리·무신사·지그재그·하이버에서 상품 페이지 URL을 그대로 붙여넣으세요.",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -131,7 +131,7 @@ const FEATURES = [
       </svg>
     ),
     title: "4개 쇼핑몰 지원",
-    desc: "에이블리·무신사·지그재그·하이버 URL을 붙여넣기만 하면 리뷰를 자동 수집합니다.",
+    desc: "에이블리·무신사·지그재그·하이버에서 URL을 붙여넣기만 하면 리뷰를 자동 수집합니다.",
   },
   {
     icon: (
@@ -334,7 +334,7 @@ export default function Landing() {
             {/* 계산 방식 3단계 */}
             <Reveal delay={0}>
               <div className="rounded-2xl p-5" style={CARD_STYLE}>
-                <p className="text-sm font-bold mb-4" style={{ color: "#1a1a2e" }}>채점 방식</p>
+                <p className="text-sm font-bold mb-4" style={{ color: "#1a1a2e" }}>점수 책정 방식</p>
                 <div className="flex flex-col gap-3">
                   {[
                     { num: "1", text: "리뷰 문장을 \"핏감\", \"소재\", \"배송\" 등 속성 키워드 기준으로 분류합니다." },
