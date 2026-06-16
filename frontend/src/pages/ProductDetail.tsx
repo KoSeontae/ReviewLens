@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { api, ALL_ASPECTS } from "../api";
 import type { Product, AnalysisResult, Review, Source } from "../api";
 import ScoreRadar from "../components/ScoreRadar";
@@ -37,6 +37,7 @@ function scoreGrade(score: number): { color: string; bg: string } {
 
 export default function ProductDetail() {
   const { source, code } = useParams<{ source: Source; code: string }>();
+  const { pathname } = useLocation();
   const [product, setProduct] = useState<Product | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -292,6 +293,7 @@ export default function ProductDetail() {
 
         {/* 분석 결과 */}
         {analysis && (
+          <>
           <div
             className="rounded-2xl overflow-hidden"
             style={{
@@ -429,6 +431,26 @@ export default function ProductDetail() {
               )}
             </div>
           </div>
+
+          {/* 의견 남기기 */}
+          <div className="text-center pt-2 pb-4">
+            <Link
+              to="/feedback"
+              state={{ productName: product.name, productUrl: window.location.origin + pathname }}
+              className="inline-flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-xl transition-all duration-150"
+              style={{
+                color: "#7c6fa0",
+                background: "rgba(124,58,237,0.06)",
+                border: "1px solid rgba(124,58,237,0.15)",
+              }}
+            >
+              이 서비스 어떠세요? 의견 남기기
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+          </>
         )}
       </main>
     </div>

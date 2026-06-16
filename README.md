@@ -13,6 +13,9 @@
 - **개인화 필터** — 관심 항목만 선택해 레이더/막대 차트에 표시 (localStorage 저장)
 - **전체 평균 비교** — 분석된 상품들의 평균과 현재 상품 점수 비교
 - **HuggingFace Inference API** — `hun3359/klue-bert-base-sentiment` 모델을 HF 서버 GPU에서 배치 추론
+- **랜딩 페이지** — 스크롤 진입 애니메이션 포함 서비스 소개 페이지 (채점 방식·점수 예시·사용 방법 등)
+- **방문자 추적** — 랜딩 페이지 접속 시 IP·기기·UTM 등을 Google Sheets에 자동 기록 (`visitors_final` 시트)
+- **피드백 수집** — 분석 완료 후 의견 제출 페이지, Google Sheets에 별도 기록 (`feedback_final` 시트)
 
 ## 프로젝트 구조
 
@@ -35,11 +38,15 @@ ReviewLens/
 ├── frontend/          # React + Vite + Tailwind
 │   └── src/
 │       ├── pages/
-│       │   ├── Home.tsx
-│       │   └── ProductDetail.tsx
-│       └── components/
-│           ├── ScoreRadar.tsx
-│           └── ScoreBars.tsx
+│       │   ├── Landing.tsx       # 랜딩 페이지 (/)
+│       │   ├── Home.tsx          # 분석 시작 (/app)
+│       │   ├── ProductDetail.tsx # 분석 결과 (/products/:source/:code)
+│       │   └── Feedback.tsx      # 피드백 폼 (/feedback)
+│       ├── components/
+│       │   ├── ScoreRadar.tsx
+│       │   └── ScoreBars.tsx
+│       └── utils/
+│           └── tracking.ts       # Google Sheets 방문자·피드백 기록
 ├── render.yaml        # Render 배포 설정
 └── requirements.txt
 ```

@@ -4,6 +4,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
 import { ALL_ASPECTS } from "../api";
+import { logVisit } from "../utils/tracking";
 
 /* ── 스크롤 진입 페이드업 ── */
 function useReveal(threshold = 0.12) {
@@ -52,7 +53,7 @@ const STATS = [
   { value: "13가지", label: "분석 속성" },
   { value: "4개",   label: "지원 쇼핑몰" },
   { value: "BERT",  label: "감성 분석 모델" },
-  { value: "무료",  label: "회원가입 불필요" },
+  { value: "무료",  label: "회원가입 필요 없음" },
 ];
 
 const STEPS = [
@@ -172,6 +173,8 @@ const CARD_STYLE: React.CSSProperties = {
 
 /* ── 페이지 ── */
 export default function Landing() {
+  useEffect(() => { logVisit(); }, []);
+
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(160deg, #f0edff 0%, #faf9ff 50%, #ede9fe 100%)" }}>
       {/* 배경 블롭 */}
@@ -311,6 +314,67 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* ── 점수 계산 기준 ── */}
+        <section>
+          <Reveal delay={0}>
+            <p className="text-xs font-semibold mb-5 text-center" style={{ color: "#9d98b8", letterSpacing: "0.1em" }}>
+              점수는 어떻게 계산되나요?
+            </p>
+          </Reveal>
+          <div className="flex flex-col gap-3">
+            {/* 계산 방식 3단계 */}
+            <Reveal delay={0}>
+              <div className="rounded-2xl p-5" style={CARD_STYLE}>
+                <p className="text-sm font-bold mb-4" style={{ color: "#1a1a2e" }}>채점 방식</p>
+                <div className="flex flex-col gap-3">
+                  {[
+                    { num: "1", text: "리뷰 문장을 \"핏감\", \"소재\", \"배송\" 등 속성 키워드 기준으로 분류합니다." },
+                    { num: "2", text: "KLUE-BERT AI 모델이 각 문장의 감성을 60가지 감정 레이블로 분류합니다." },
+                    { num: "3", text: "긍정 감정 비율을 0~100점으로 환산해 속성별 평균을 냅니다." },
+                  ].map((step) => (
+                    <div key={step.num} className="flex gap-3 items-start">
+                      <span
+                        className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold mt-0.5"
+                        style={{ background: "rgba(124,58,237,0.12)", color: "#7c3aed" }}
+                      >
+                        {step.num}
+                      </span>
+                      <p className="text-xs leading-relaxed" style={{ color: "#7c6fa0" }}>{step.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+
+            {/* 점수 등급 범례 */}
+            <Reveal delay={100}>
+              <div className="rounded-2xl p-5" style={CARD_STYLE}>
+                <p className="text-sm font-bold mb-4" style={{ color: "#1a1a2e" }}>점수 등급</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {[
+                    { range: "80 ~ 100", label: "매우 긍정",  color: "#059669", bg: "#ecfdf5" },
+                    { range: "65 ~ 79",  label: "양호",       color: "#7c3aed", bg: "#f5f3ff" },
+                    { range: "50 ~ 64",  label: "보통",       color: "#d97706", bg: "#fffbeb" },
+                    { range: "0 ~ 49",   label: "부정",  color: "#dc2626", bg: "#fef2f2" },
+                  ].map((g) => (
+                    <div
+                      key={g.label}
+                      className="rounded-xl p-3 text-center"
+                      style={{ background: g.bg, border: `1px solid ${g.color}22` }}
+                    >
+                      <p className="text-sm font-extrabold" style={{ color: g.color }}>{g.range}</p>
+                      <p className="text-xs mt-0.5" style={{ color: g.color, opacity: 0.75 }}>{g.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs mt-3" style={{ color: "#bdb8d4" }}>
+                  * 리뷰에서 해당 속성이 언급되지 않으면 점수가 산출되지 않습니다.
+                </p>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
         {/* ── 속성 점수 미리보기 ── */}
         <Reveal delay={0}>
           <div className="rounded-2xl p-6" style={CARD_STYLE}>
@@ -382,7 +446,6 @@ export default function Landing() {
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
             </Link>
-            <p className="mt-3 text-xs" style={{ color: "#c4b5fd" }}>무료 · 회원가입 불필요</p>
           </div>
         </Reveal>
 
