@@ -142,6 +142,15 @@ const FEATURES = [
     title: "AI 키워드 요약",
     desc: "단순 별점이 아닌 BERT 기반 모델이 리뷰 문장을 읽고 속성별 요약 문장을 함께 제공합니다.",
   },
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="3"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/><path d="M18 8h4M20 6v4"/>
+      </svg>
+    ),
+    title: "나만의 종합 점수",
+    desc: "관심 속성마다 중요도(1~5)를 직접 설정하면, 내 기준으로 가중 평균한 종합 점수를 바로 확인할 수 있습니다.",
+  },
 ];
 
 const SAMPLE_SCORES = [
@@ -299,7 +308,7 @@ export default function Landing() {
               주요 기능
             </p>
           </Reveal>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3">
             {FEATURES.map((f, i) => (
               <Reveal key={f.title} delay={i * 100}>
                 <div className="rounded-2xl p-5 flex flex-col gap-3 h-full" style={CARD_STYLE}>
@@ -374,6 +383,73 @@ export default function Landing() {
             </Reveal>
           </div>
         </section>
+
+        {/* ── 화면 구성 미리보기 ── */}
+        <Reveal delay={0}>
+          <div className="rounded-2xl p-5" style={CARD_STYLE}>
+            <p className="text-sm font-bold mb-1" style={{ color: "#1a1a2e" }}>실제 화면 구성</p>
+            <p className="text-xs mb-4" style={{ color: "#9d98b8" }}>관심 속성과 중요도를 설정하면 나만의 종합 점수가 계산됩니다</p>
+
+            {/* 관심 속성 + 중요도 */}
+            <div className="rounded-xl p-4 mb-3" style={{ background: "#faf8ff", border: "1px solid rgba(139,92,246,0.08)" }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold" style={{ color: "#6d28d9" }}>관심 속성</p>
+                <span className="text-xs" style={{ color: "#bdb8d4" }}>4 / 13</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {[
+                  { label: "핏",     active: true,  dot: "#7c3aed" },
+                  { label: "소재",   active: true,  dot: "#059669" },
+                  { label: "사이즈", active: false },
+                  { label: "가격",   active: true,  dot: "#d97706" },
+                  { label: "배송",   active: false },
+                  { label: "디자인", active: true,  dot: "#059669" },
+                ].map(({ label, active, dot }) => (
+                  <span
+                    key={label}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                    style={
+                      active
+                        ? { background: "rgba(124,58,237,0.1)", border: "1.5px solid rgba(124,58,237,0.35)", color: "#6d28d9" }
+                        : { background: "#f5f3ff", border: "1.5px solid #e5e0f5", color: "#9d98b8" }
+                    }
+                  >
+                    {dot && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dot }} />}
+                    {label}
+                  </span>
+                ))}
+              </div>
+
+              <div style={{ borderTop: "1px solid rgba(139,92,246,0.08)", marginBottom: "10px" }} />
+
+              <p className="text-xs font-semibold mb-2" style={{ color: "#9d98b8" }}>중요도</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                {[
+                  { label: "핏",     w: 4 },
+                  { label: "소재",   w: 5 },
+                  { label: "가격",   w: 3 },
+                  { label: "디자인", w: 5 },
+                ].map(({ label, w }) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <span className="text-xs font-medium w-12 flex-shrink-0" style={{ color: "#3d3960" }}>{label}</span>
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <div key={n} className="w-3 h-3 rounded-full" style={{ background: n <= w ? "#7c3aed" : "#e5e0f5" }} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 종합 점수 카드 */}
+            <div className="rounded-xl p-4 text-center" style={{ background: "#ecfdf5", border: "1px solid #05966922" }}>
+              <div className="text-4xl font-extrabold" style={{ color: "#059669" }}>87</div>
+              <div className="text-sm font-semibold mt-1" style={{ color: "#059669", opacity: 0.85 }}>나의 종합 점수</div>
+              <div className="text-xs mt-0.5" style={{ color: "#9d98b8" }}>관심 속성 가중 평균 · 4개 항목</div>
+            </div>
+          </div>
+        </Reveal>
 
         {/* ── 속성 점수 미리보기 ── */}
         <Reveal delay={0}>

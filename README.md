@@ -11,7 +11,9 @@
 - **13가지 속성 분석** — 핏, 소재, 마감, 사이즈, 가격, 색상, 디자인, 착용감, 배송, 관리, 비침, 신축성, 계절감
 - **키워드별 자연스러운 요약** — 각 속성 툴팁에 키워드 맞춤 문장으로 점수 근거 표시
 - **개인화 필터** — 관심 항목만 선택해 레이더/막대 차트에 표시 (localStorage 저장)
+- **나만의 종합 점수** — 관심 속성별 중요도(1~5)를 직접 설정하면 가중 평균으로 계산한 개인화 종합 점수 표시
 - **전체 평균 비교** — 분석된 상품들의 평균과 현재 상품 점수 비교
+- **앱 공유 링크 지원** — 쇼핑몰 앱에서 공유한 onelink/단축 링크도 그대로 붙여넣어 분석 가능
 - **HuggingFace Inference API** — `hun3359/klue-bert-base-sentiment` 모델을 HF 서버 GPU에서 배치 추론
 - **랜딩 페이지** — 스크롤 진입 애니메이션 포함 서비스 소개 페이지 (채점 방식·점수 예시·사용 방법 등)
 - **방문자 추적** — 랜딩 페이지 접속 시 IP·기기·UTM 등을 Google Sheets에 자동 기록 (`visitors_final` 시트)
@@ -100,6 +102,7 @@ npm run dev
 | GET | `/products/{source}/{code}` | 상품 상세 |
 | GET | `/products/{source}/{code}/reviews` | 리뷰 목록 |
 | GET | `/products/{source}/{code}/analysis` | 분석 결과 |
+| GET | `/products/resolve-url` | 앱 공유 링크(onelink/단축 URL)를 실제 상품 URL로 변환 |
 
 ## 분석 속성 (13가지)
 
@@ -127,3 +130,7 @@ npm run dev
 | 무신사 | `musinsa.com/products/{상품ID}` |
 | 지그재그 | `zigzag.kr/catalog/products/{상품ID}` |
 | 하이버 | `hiver.co.kr/products/{상품ID}` |
+
+쇼핑몰 앱의 공유 버튼으로 복사한 링크(onelink, 단축 URL 등)도 그대로 붙여넣으면 자동으로 변환되어 분석됩니다.
+- 하이버 onelink는 쿼리 파라미터(`id=`)에서 바로 추출
+- 무신사(`onelink.me`)·에이블리(`applink.a-bly.com`)·지그재그(`s.zigzag.kr`) 단축 링크는 백엔드에서 리다이렉트를 추적해 실제 URL로 변환

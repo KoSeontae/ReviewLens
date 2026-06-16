@@ -3,18 +3,35 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import type { Source } from "../api";
 
-const SOURCES: { key: Source; label: string; hint: string }[] = [
-  { key: "ably",    label: "에이블리", hint: "a-bly.com/goods/12345678" },
-  { key: "musinsa", label: "무신사",   hint: "musinsa.com/products/1234567" },
-  { key: "zigzag",  label: "지그재그", hint: "zigzag.kr/catalog/products/123456789" },
-  { key: "hiver",   label: "하이버",   hint: "hiver.co.kr/products/123456789" },
+const SOURCES: { key: Source; label: string }[] = [
+  { key: "ably",    label: "에이블리" },
+  { key: "musinsa", label: "무신사" },
+  { key: "zigzag",  label: "지그재그" },
+  { key: "hiver",   label: "하이버" },
 ];
+
+function isShortLink(url: string): boolean {
+  return (
+    /musinsa\.onelink\.me/.test(url) ||
+    /applink\.a-bly\.com/.test(url) ||
+    /s\.zigzag\.kr\/[A-Za-z0-9]+/.test(url)
+  );
+}
 
 const parseInput = (raw: string, fallback: Source): { source: Source; code: string } | null => {
   const s = raw.trim();
+
+  // 하이버 앱 공유 링크: URL 쿼리 파라미터에서 id 직접 추출
+  if (s.includes("hiver.co.kr/onelink")) {
+    try {
+      const id = new URL(s).searchParams.get("id");
+      if (id && /^\d+$/.test(id)) return { source: "hiver", code: id };
+    } catch {}
+  }
+
   const patterns: [RegExp, Source][] = [
     [/a-bly\.com\/goods\/(\d+)/, "ably"],
-    [/musinsa\.com\/products\/(\d+)/, "musinsa"],
+    [/musinsa\.com\/(?:app\/goods|products)\/(\d+)/, "musinsa"],
     [/zigzag\.kr\/catalog\/products\/(\d+)/, "zigzag"],
     [/hiver\.co\.kr\/products\/(\d+)/, "hiver"],
   ];
@@ -35,16 +52,9 @@ export default function Home() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const hint = SOURCES.find((s) => s.key === source)?.hint ?? "";
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productCode.trim()) return;
-    const parsed = parseInput(productCode, source);
-    if (!parsed) {
-      setError("올바른 상품 URL 또는 숫자 ID를 입력해주세요.");
-      return;
-    }
     if (maxReviews === "" || maxReviews < 1) {
       setReviewCountError("1개 이상 입력해주세요.");
       return;
@@ -52,6 +62,22 @@ export default function Home() {
     setError("");
     setLoading(true);
     try {
+      let resolvedInput = productCode.trim();
+      if (isShortLink(resolvedInput)) {
+        try {
+          resolvedInput = await api.resolveUrl(resolvedInput);
+        } catch {
+          setError("링크를 변환할 수 없습니다. 상품 페이지 URL을 직접 복사해 붙여넣어 주세요.");
+          setLoading(false);
+          return;
+        }
+      }
+      const parsed = parseInput(resolvedInput, source);
+      if (!parsed) {
+        setError("올바른 상품 URL 또는 숫자 ID를 입력해주세요.");
+        setLoading(false);
+        return;
+      }
       const product = await api.crawl(parsed.source, parsed.code, maxReviews);
       navigate(`/products/${product.source}/${product.product_code}`);
     } catch (err: unknown) {
@@ -178,12 +204,17 @@ export default function Home() {
                 e.target.style.boxShadow = "inset 0 1px 3px rgba(109,40,217,0.04)";
               }}
             />
-            <p className="mt-2 text-xs flex items-center gap-1" style={{ color: "#bdb8d4" }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
-              </svg>
-              예) <span style={{ color: "#a78bfa" }}>{hint}</span>
-            </p>
+            <div className="mt-2 text-xs space-y-1" style={{ color: "#bdb8d4" }}>
+              <p className="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+                </svg>
+                웹: 브라우저 주소창의 링크를 그대로 복사
+              </p>
+              <p className="flex items-center gap-1 pl-[16px]">
+                앱: 공유 버튼 → 복사 후 그대로 붙여넣기
+              </p>
+            </div>
           </div>
 
           {/* 리뷰 수 입력 */}
@@ -275,10 +306,6 @@ export default function Home() {
             )}
           </button>
         </form>
-
-        <p className="text-center mt-5 text-xs" style={{ color: "#c4b5fd" }}>
-          에이블리 · 무신사 · 지그재그 · 하이버 지원
-        </p>
       </div>
     </div>
   );

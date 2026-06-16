@@ -65,4 +65,6 @@ export const api = {
     client.post<Product>("/products/crawl", { source, product_code, max_reviews }).then((r) => r.data),
   analyze: (source: Source, product_code: string) =>
     client.post<AnalysisResult>("/products/analyze", { source, product_code }).then((r) => r.data),
+  resolveUrl: (url: string) =>
+    client.get<{ url: string }>("/products/resolve-url", { params: { url } }).then((r) => r.data.url),
 };

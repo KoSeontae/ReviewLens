@@ -9,6 +9,29 @@ from analysis.absa import analyze_reviews
 router = APIRouter(prefix="/products", tags=["products"])
 
 
+@router.get("/resolve-url")
+async def resolve_url(url: str):
+    """앱 공유 링크(onelink, 단축 URL)를 실제 상품 URL로 변환합니다."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=10) as client:
+            r = await client.get(url, headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                )
+            })
+            resolved = str(r.url)
+            if resolved.startswith("http"):
+                return {"url": resolved}
+            raise HTTPException(status_code=400, detail="웹 URL로 변환할 수 없습니다.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"URL 변환 실패: {e}")
+
+
 def _get_crawler(source: str):
     if source == "ably":
         from crawler.ably import crawl_product_reviews

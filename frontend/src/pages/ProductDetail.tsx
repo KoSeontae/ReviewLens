@@ -15,6 +15,7 @@ const SOURCE_LABELS: Record<Source, string> = {
 };
 
 const STORAGE_KEY = "reviewlens_visible_aspects";
+const WEIGHTS_KEY  = "reviewlens_aspect_weights";
 
 function loadVisibleAspects(): string[] {
   try {
@@ -26,6 +27,18 @@ function loadVisibleAspects(): string[] {
 
 function saveVisibleAspects(keys: string[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
+}
+
+function loadAspectWeights(): Record<string, number> {
+  try {
+    const saved = localStorage.getItem(WEIGHTS_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return {};
+}
+
+function saveAspectWeights(weights: Record<string, number>) {
+  localStorage.setItem(WEIGHTS_KEY, JSON.stringify(weights));
 }
 
 function scoreGrade(score: number): { color: string; bg: string } {
@@ -43,6 +56,7 @@ export default function ProductDetail() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [averages, setAverages] = useState<Record<string, number>>({});
   const [visibleAspects, setVisibleAspects] = useState<string[]>(loadVisibleAspects);
+  const [aspectWeights, setAspectWeights] = useState<Record<string, number>>(loadAspectWeights);
   const [tab, setTab] = useState<Tab>("radar");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
@@ -54,6 +68,14 @@ export default function ProductDetail() {
     api.getReviews(source, code).then(setReviews).catch(() => {});
     api.getAverages().then(setAverages).catch(() => {});
   }, [source, code]);
+
+  const setWeight = (key: string, value: number) => {
+    setAspectWeights((prev) => {
+      const next = { ...prev, [key]: value };
+      saveAspectWeights(next);
+      return next;
+    });
+  };
 
   const toggleAspect = (key: string) => {
     setVisibleAspects((prev) => {
@@ -100,17 +122,20 @@ export default function ProductDetail() {
     );
   }
 
-  const topScores = analysis
-    ? Object.entries(analysis.scores)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([key, score]) => ({
-          key,
-          label: ALL_ASPECTS.find((a) => a.key === key)?.label ?? key,
-          score,
-          ...scoreGrade(score),
-        }))
+  const scoredVisible = analysis
+    ? visibleAspects.filter((k) => analysis.scores[k] !== undefined)
     : [];
+  const totalWeight = scoredVisible.reduce((s, k) => s + (aspectWeights[k] ?? 3), 0);
+  const weightedScore =
+    analysis && totalWeight > 0
+      ? Math.round(
+          scoredVisible.reduce(
+            (s, k) => s + (aspectWeights[k] ?? 3) * (analysis.scores[k] * 100),
+            0
+          ) / totalWeight
+        )
+      : null;
+  const weightedGrade = weightedScore !== null ? scoreGrade(weightedScore / 100) : null;
 
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(160deg, #f0edff 0%, #faf9ff 60%, #ede9fe 100%)" }}>
@@ -234,6 +259,40 @@ export default function ProductDetail() {
               );
             })}
           </div>
+
+          {visibleAspects.length > 0 && (
+            <>
+              <div style={{ borderTop: "1px solid rgba(139,92,246,0.08)" }} />
+              <div>
+                <p className="text-xs font-semibold mb-2.5" style={{ color: "#9d98b8", letterSpacing: "0.05em" }}>
+                  중요도
+                </p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  {visibleAspects.map((key) => {
+                    const aspect = ALL_ASPECTS.find((a) => a.key === key);
+                    const w = aspectWeights[key] ?? 3;
+                    return (
+                      <div key={key} className="flex items-center gap-3">
+                        <span className="text-xs font-medium w-14 flex-shrink-0" style={{ color: "#3d3960" }}>
+                          {aspect?.label ?? key}
+                        </span>
+                        <div className="flex gap-1.5">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button
+                              key={n}
+                              onClick={() => setWeight(key, n)}
+                              className="w-3.5 h-3.5 rounded-full transition-all duration-150"
+                              style={{ background: n <= w ? "#7c3aed" : "#e5e0f5" }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* 분석 전 */}
@@ -327,22 +386,29 @@ export default function ProductDetail() {
                 </button>
               </div>
 
-              {topScores.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {topScores.map(({ key, label, score, color, bg }) => (
-                    <div
-                      key={key}
-                      className="rounded-xl p-3 text-center"
-                      style={{ background: bg, border: `1px solid ${color}22` }}
-                    >
-                      <div className="text-2xl font-extrabold" style={{ color }}>
-                        {Math.round(score * 100)}
-                      </div>
-                      <div className="text-xs mt-0.5" style={{ color: "#7c6fa0" }}>
-                        {label}
-                      </div>
-                    </div>
-                  ))}
+              {weightedScore !== null && weightedGrade ? (
+                <div
+                  className="rounded-xl p-4 text-center"
+                  style={{ background: weightedGrade.bg, border: `1px solid ${weightedGrade.color}22` }}
+                >
+                  <div className="text-4xl font-extrabold" style={{ color: weightedGrade.color }}>
+                    {weightedScore}
+                  </div>
+                  <div className="text-sm font-semibold mt-1" style={{ color: weightedGrade.color, opacity: 0.85 }}>
+                    나의 종합 점수
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: "#9d98b8" }}>
+                    관심 속성 가중 평균 · {scoredVisible.length}개 항목
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="rounded-xl p-4 text-center"
+                  style={{ background: "#f9f7ff", border: "1px solid rgba(139,92,246,0.1)" }}
+                >
+                  <p className="text-xs" style={{ color: "#9d98b8" }}>
+                    관심 속성을 선택하면 종합 점수가 계산됩니다
+                  </p>
                 </div>
               )}
             </div>
