@@ -51,7 +51,7 @@ function Reveal({
 /* ── 데이터 ── */
 const STATS = [
   { value: "13가지", label: "분석 속성" },
-  { value: "4개",   label: "지원 쇼핑몰" },
+  { value: "4개",   label: "쇼핑몰 지원" },
   { value: "BERT",  label: "감성 분석 모델" },
   { value: "무료",  label: "회원가입 필요 없음" },
 ];
