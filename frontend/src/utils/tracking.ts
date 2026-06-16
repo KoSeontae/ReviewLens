@@ -73,7 +73,12 @@ export async function logVisit() {
   });
 }
 
-export async function submitFeedback(email: string, advice: string, productUrl = "") {
+export async function submitFeedback(
+  email: string,
+  advice: string,
+  productUrl = "",
+  purchaseHelp: "yes" | "no" | "" = ""
+) {
   const ip = await fetchIP();
   await send("feedback_final", {
     id: getOrCreateUserId(),
@@ -85,5 +90,6 @@ export async function submitFeedback(email: string, advice: string, productUrl =
     device: getDevice(),
     email,
     advice,
+    purchase_help: purchaseHelp,
   });
 }

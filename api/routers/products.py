@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from api.database import get_db
@@ -7,6 +8,22 @@ from api.schemas import ProductOut, ReviewOut, AnalysisResultOut, CrawlRequest, 
 from analysis.absa import analyze_reviews
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+# 분석 진행률(메모리 캐시). 키: "{source}:{product_code}"
+_analysis_progress: dict[str, dict] = {}
+
+
+def _progress_key(source: str, product_code: str) -> str:
+    return f"{source}:{product_code}"
+
+
+@router.get("/{source}/{product_code}/analyze/progress")
+async def get_analyze_progress(source: str, product_code: str):
+    """진행 중인 분석의 처리된 문장 수 / 전체 문장 수를 반환합니다."""
+    progress = _analysis_progress.get(_progress_key(source, product_code))
+    if not progress:
+        return {"done": 0, "total": 0, "running": False}
+    return progress
 
 
 @router.get("/resolve-url")
@@ -185,7 +202,17 @@ async def analyze_product(req: AnalyzeRequest, db: AsyncSession = Depends(get_db
     if not review_texts:
         raise HTTPException(status_code=422, detail="No reviews to analyze.")
 
-    scores, summaries = analyze_reviews(review_texts)
+    key = _progress_key(req.source, req.product_code)
+    _analysis_progress[key] = {"done": 0, "total": 0, "running": True}
+
+    def on_progress(done: int, total: int) -> None:
+        _analysis_progress[key] = {"done": done, "total": total, "running": True}
+
+    try:
+        # HF API 호출이 동기/블로킹이라 쓰레드풀에서 실행해 이벤트 루프(진행률 polling)를 막지 않음
+        scores, summaries = await run_in_threadpool(analyze_reviews, review_texts, on_progress)
+    finally:
+        _analysis_progress.pop(key, None)
 
     analysis = AnalysisResult(
         product_id=product.id,

@@ -5,6 +5,7 @@ beautifulsoup4==4.12.3
 pyabsa==2.4.2
 pandas==2.2.2
 numpy==1.26.4
+scipy==1.13.1
 
 # API
 fastapi==0.111.0

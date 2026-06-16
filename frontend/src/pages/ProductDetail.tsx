@@ -59,6 +59,7 @@ export default function ProductDetail() {
   const [aspectWeights, setAspectWeights] = useState<Record<string, number>>(loadAspectWeights);
   const [tab, setTab] = useState<Tab>("radar");
   const [analyzing, setAnalyzing] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -88,7 +89,16 @@ export default function ProductDetail() {
   const runAnalysis = async () => {
     if (!source || !code) return;
     setAnalyzing(true);
+    setProgress(null);
     setError("");
+
+    const pollId = setInterval(async () => {
+      try {
+        const p = await api.getAnalyzeProgress(source, code);
+        if (p.total > 0) setProgress({ done: p.done, total: p.total });
+      } catch {}
+    }, 800);
+
     try {
       const result = await api.analyze(source, code);
       const updatedReviews = await api.getReviews(source, code);
@@ -97,7 +107,9 @@ export default function ProductDetail() {
     } catch {
       setError("분석 중 오류가 발생했습니다.");
     } finally {
+      clearInterval(pollId);
       setAnalyzing(false);
+      setProgress(null);
     }
   };
 
@@ -327,6 +339,23 @@ export default function ProductDetail() {
                 {error}
               </p>
             )}
+            {analyzing && progress && progress.total > 0 && (
+              <div className="space-y-1.5">
+                <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "#ede9fe" }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, Math.round((progress.done / progress.total) * 100))}%`,
+                      background: "linear-gradient(135deg, #7c3aed, #9333ea)",
+                    }}
+                  />
+                </div>
+                <p className="text-xs" style={{ color: "#7c6fa0" }}>
+                  {progress.done} / {progress.total}개 문장 분석 중 (
+                  {Math.min(100, Math.round((progress.done / progress.total) * 100))}%)
+                </p>
+              </div>
+            )}
             <button
               onClick={runAnalysis}
               disabled={analyzing}
@@ -343,7 +372,7 @@ export default function ProductDetail() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  분석 중…
+                  {progress && progress.total > 0 ? `분석 중… (${progress.done}/${progress.total})` : "분석 중…"}
                 </span>
               ) : "AI 분석 시작"}
             </button>
@@ -382,9 +411,30 @@ export default function ProductDetail() {
                     border: "1px solid rgba(124,58,237,0.2)",
                   }}
                 >
-                  {analyzing ? "분석 중…" : "재분석"}
+                  {analyzing
+                    ? progress && progress.total > 0
+                      ? `분석 중… (${progress.done}/${progress.total})`
+                      : "분석 중…"
+                    : "재분석"}
                 </button>
               </div>
+
+              {analyzing && progress && progress.total > 0 && (
+                <div className="mb-4 space-y-1.5">
+                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "#ede9fe" }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min(100, Math.round((progress.done / progress.total) * 100))}%`,
+                        background: "linear-gradient(135deg, #7c3aed, #9333ea)",
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs" style={{ color: "#7c6fa0" }}>
+                    {progress.done} / {progress.total}개 문장 재분석 중
+                  </p>
+                </div>
+              )}
 
               {weightedScore !== null && weightedGrade ? (
                 <div

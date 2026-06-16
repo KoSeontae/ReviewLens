@@ -18,7 +18,7 @@ import os
 import re
 import time
 from collections import Counter
-from typing import Optional
+from typing import Callable, Optional
 
 import httpx
 
@@ -138,14 +138,21 @@ class KlueBertAnalyzer:
 
         return [[] for _ in sentences]
 
-    def score_sentences(self, sentences: list[str]) -> list[float]:
+    def score_sentences(
+        self,
+        sentences: list[str],
+        on_progress: Optional[Callable[[int, int], None]] = None,
+    ) -> list[float]:
         """문장 리스트를 32개씩 배치로 나눠 API에 전송하고 점수 리스트를 반환합니다."""
         BATCH_SIZE = 32
+        total = len(sentences)
         scores: list[float] = []
-        for i in range(0, len(sentences), BATCH_SIZE):
+        for i in range(0, total, BATCH_SIZE):
             batch = [s[:256] for s in sentences[i : i + BATCH_SIZE]]
             results = self._call_api(batch)
             scores.extend(_labels_to_score(outputs) if outputs else 0.5 for outputs in results)
+            if on_progress:
+                on_progress(min(i + BATCH_SIZE, total), total)
         return scores
 
     def analyze(self, text: str) -> tuple[dict[str, float], dict[str, list[str]]]:
@@ -364,9 +371,14 @@ def _build_summary(key: str, score: float, clauses: list[str], display_keywords:
     return _ASPECT_TEMPLATES.get(key, {}).get(level, "")
 
 
-def analyze_reviews(reviews: list[str]) -> tuple[dict[str, float], dict[str, str]]:
+def analyze_reviews(
+    reviews: list[str],
+    on_progress: Optional[Callable[[int, int], None]] = None,
+) -> tuple[dict[str, float], dict[str, str]]:
     """
     리뷰 목록을 받아 속성별 평균 감성 점수와 대표 문장 요약을 반환합니다.
+
+    on_progress(done, total)이 주어지면 처리된 문장/리뷰 수를 콜백으로 보고합니다.
 
     Returns:
         scores: {"fit": 0.82, "material": 0.74, ...}
@@ -387,17 +399,20 @@ def analyze_reviews(reviews: list[str]) -> tuple[dict[str, float], dict[str, str
 
     # API 호출은 배치로 한 번에 처리
     if isinstance(analyzer, KlueBertAnalyzer):
-        sentence_scores = analyzer.score_sentences(all_sentences)
+        sentence_scores = analyzer.score_sentences(all_sentences, on_progress=on_progress)
     else:
         # PyABSA는 기존 방식 유지
         aggregated: dict[str, list[float]] = {}
         all_snippets: dict[str, list[str]] = {}
-        for review in reviews:
+        total_reviews = len(reviews)
+        for i, review in enumerate(reviews):
             scores, snippets = analyzer.analyze(review)
             for key, score in scores.items():
                 aggregated.setdefault(key, []).append(score)
             for key, sents in snippets.items():
                 all_snippets.setdefault(key, []).extend(sents)
+            if on_progress:
+                on_progress(i + 1, total_reviews)
         scores_out = {k: round(sum(v) / len(v), 4) for k, v in aggregated.items()}
         aspect_kw_map = {a.key: a.display_keywords for a in FASHION_ASPECTS}
         summaries = {

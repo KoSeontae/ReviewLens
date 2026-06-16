@@ -28,20 +28,21 @@ export default function Feedback() {
 
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
+  const [purchaseHelp, setPurchaseHelp] = useState<"yes" | "no" | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) {
-      setError("의견을 입력해주세요.");
+    if (!purchaseHelp) {
+      setError("구매 도움 여부를 선택해주세요.");
       return;
     }
     setSubmitting(true);
     setError("");
     try {
-      await submitFeedback(email.trim(), message.trim(), state.productUrl ?? "");
+      await submitFeedback(email.trim(), message.trim(), state.productUrl ?? "", purchaseHelp);
       setSubmitted(true);
     } catch {
       setError("전송 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -143,12 +144,37 @@ export default function Feedback() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold block" style={{ color: "#6d28d9" }}>
-                의견 <span style={{ color: "#dc2626" }}>*</span>
+                이 분석 결과가 실제 상품 구매를 결정하는 데 도움이 될 것 같나요?{" "}
+                <span style={{ color: "#dc2626" }}>*</span>
+              </label>
+              <div className="flex gap-2">
+                {(["yes", "no"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => { setPurchaseHelp(v); setError(""); }}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
+                    style={
+                      purchaseHelp === v
+                        ? { background: "linear-gradient(135deg, #7c3aed, #9333ea)", color: "#fff" }
+                        : { background: "#f9f7ff", border: "1.5px solid rgba(139,92,246,0.2)", color: "#1a1a2e" }
+                    }
+                  >
+                    {v === "yes" ? "네, 도움될 것 같아요" : "아니요, 잘 모르겠어요"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold block" style={{ color: "#6d28d9" }}>
+                의견{" "}
+                <span style={{ color: "#bdb8d4", fontWeight: 400 }}>(선택)</span>
               </label>
               <textarea
                 value={message}
                 onChange={(e) => { setMessage(e.target.value); setError(""); }}
-                placeholder="분석 결과가 도움이 됐나요? 불편한 점이나 개선 사항이 있다면 알려주세요."
+                placeholder="불편한 점이나 개선 사항이 있다면 알려주세요."
                 rows={5}
                 style={{ ...INPUT_STYLE, resize: "none" }}
               />
