@@ -32,7 +32,7 @@ const parseInput = (raw: string, fallback: Source): { source: Source; code: stri
   const patterns: [RegExp, Source][] = [
     [/a-bly\.com\/goods\/(\d+)/, "ably"],
     [/musinsa\.com\/(?:app\/goods|products)\/(\d+)/, "musinsa"],
-    [/zigzag\.kr\/catalog\/products\/(\d+)/, "zigzag"],
+    [/zigzag\.kr\/(?:catalog\/products|p)\/(\d+)/, "zigzag"],
     [/hiver\.co\.kr\/products\/(\d+)/, "hiver"],
   ];
   for (const [re, src] of patterns) {
